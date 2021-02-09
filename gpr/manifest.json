@@ -3,12 +3,12 @@
 	"name" : "Gaussian Process Regression",
 	"icons" : [
 		{
-			"src": ""https://apps.tbeckers.com/gpr/icon192.png",
+			"src": "https://apps.tbeckers.com/gpr/icon192.png",
 			"sizes": "192x192",
 			"purpose": "any maskable"
 		},
 		{
-			"src": ""https://apps.tbeckers.com/gpr/icon512.png",
+			"src": "https://apps.tbeckers.com/gpr/icon512.png",
 			"sizes": "512x512"
 		}],
 	"start_url" : "https://apps.tbeckers.com/gpr/index.html",
