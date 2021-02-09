@@ -1,0 +1,23 @@
+ {
+	"short_name" : "GPR",
+	"name" : "Gaussian Process Regression",
+	"icons" : [
+		{
+			"src": "https://www.seas.upenn.edu/~tbeckers/gpr/icon192.png",
+			"sizes": "192x192",
+			"purpose": "any maskable"
+		},
+		{
+			"src": "https://www.seas.upenn.edu/~tbeckers/gpr/icon512.png",
+			"sizes": "512x512"
+		}],
+	"start_url" : "https://www.seas.upenn.edu/~tbeckers/gpr/index.html",
+	"display" : "fullscreen",
+	"background_color" : "#FFFFFF",
+	"theme_color" : "#FFFFFF",
+	"url" : "https://www.seas.upenn.edu/~tbeckers/gpr/",
+	"lang" : "",
+	"screenshots" : [],
+	"orientation" : "",
+	"generated" : ""
+}

@@ -1,0 +1,22 @@
+ {
+	"short_name" : "Pendulum",
+	"name" : "Pendulum",
+	"icons" : [
+		{
+			"src": "https://tbeckers.de/pendulum/icon192.png",
+			"sizes": "192x192"
+		},
+		{
+			"src": "https://tbeckers.de/pendulum/icon512.png",
+			"sizes": "512x512"
+		}],
+	"start_url" : "https://tbeckers.de/pendulum/index.html",
+	"display" : "fullscreen",
+	"background_color" : "#FFFFFF",
+	"theme_color" : "#FFFFFF",
+	"url" : "https://tbeckers.de/pendulum/",
+	"lang" : "",
+	"screenshots" : [],
+	"orientation" : "",
+	"generated" : ""
+}

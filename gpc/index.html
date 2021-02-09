@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="theme-color" content="#FFFFFF"/>
+	<meta name="Description" content="Gaussian Process Regression by Thomas Beckers">
+	<meta name="keywords" content="Gaussian Process Regression, GPR, app, android, pwa, apple, download, Thomas Beckers">
+	<title>Pendulum</title>
+	<link rel="apple-touch-icon" href="icon192.png">
+	<link rel="icon" href="icon192.png">
+	<link rel="stylesheet" type="text/css" href="stylesheet.css">
+	<link rel="manifest" href="manifest.json">
+	<script language="javascript" type="text/javascript" src="scripts/math_and_opt.js"></script>
+	<script language="javascript" type="text/javascript" src="scripts/gpr.js"></script>	
+	<script language="javascript" type="text/javascript" src="scripts/heatmap.js"></script>	
+</head>
+<body>
+<canvas id="div_canvas"></canvas>	
+	<div id="div_ball_pen"></div>
+
+<div id="controlcontainer">	
+<input type="button" value="Record data" id="button_record" onclick="buttonRecord();">
+<input type="button" value="Train" id="button_train" onclick="buttonTrain();">
+<input type="button" value="Run controller" id="button_run" onclick="buttonRun();">
+<br>
+<nobr>Gravity: <output id="g_value">-</output></nobr><br>
+<nobr>Number: <output id="n_value">-</output></nobr><br>
+</div>
+<script language="javascript" type="text/javascript" src="scripts/script.js"></script>
+</body>
+</html>
