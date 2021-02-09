@@ -42,7 +42,7 @@ var rects = [];
   
 //Service worker for PWA
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/~tbeckers/gpr/service-worker.js')
+  navigator.serviceWorker.register('/gpr/service-worker.js')
   .then(function(registration) {
     console.log('Registration successful, scope is:', registration.scope);
   })
