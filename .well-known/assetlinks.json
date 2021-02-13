@@ -1,5 +1,5 @@
 [{
   "relation": ["delegate_permission/common.handle_all_urls"],
   "target" : { "namespace": "android_app", "package_name": "com.tbeckers.gpr.twa",
-               "sha256_cert_fingerprints": ["00:67:8A:5D:00:C2:17:7C:72:A3:DF:DE:54:65:F0:2A:4A:DB:22:D2:4B:89:EC:AB:54:2F:EE:0B:54:5C:AF:62"] }
+               "sha256_cert_fingerprints": ["15:C6:07:97:69:05:7C:99:31:DC:CD:87:DD:C5:F6:D1:A5:B4:F4:18:D1:E7:68:9A:F2:81:F2:51:DA:9C:F2:D5"] }
 }]
