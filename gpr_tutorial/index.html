@@ -1,0 +1,1590 @@
+<!DOCTYPE html> 
+<html lang='en' xml:lang='en'> 
+<head><title></title> 
+<meta charset='utf-8' /> 
+<meta content='TeX4ht (https://tug.org/tex4ht/)' name='generator' /> 
+<meta content='width=device-width,initial-scale=1' name='viewport' /> 
+<link type='text/css' rel='stylesheet' href='tutorial_material_html.css' /> 
+<meta content='tutorial_material_html.tex' name='src' /> 
+</head><body>
+<div class='center'>
+<!-- l. 16 --><p class='noindent'>
+</p><!-- l. 17 --><p class='noindent'>  <span class='ec-lmcsc-10x-x-248'>An Introduction to Gaussian
+</span><span class='ec-lmcsc-10x-x-248'>Process Models</span><br />
+<span class='ec-lmr-12x-x-120'>by</span><br />
+<span class='ec-lmr-12x-x-120'>Thomas Beckers, t.beckers@tum.de</span></p></div>
+<!-- l. 32 --><p class='noindent'>Within the past two decades, Gaussian process regression has been increasingly used for modeling
+dynamical systems due to some beneficial properties such as the bias variance trade-off and the
+strong connection to Bayesian mathematics. As data-driven method, a Gaussian process is a
+powerful tool for nonlinear function regression without the need of much prior knowledge. In
+contrast to most of the other techniques, Gaussian Process modeling provides not only
+a mean prediction but also a measure for the model fidelity. In this article, we give
+an introduction to Gaussian processes and its usage in regression tasks of dynamical
+systems.
+</p><!-- l. 36 --><p class='indent'>
+                                                                                         
+                                                                                         
+</p>
+   <h3 class='likesectionHead'><a id='x1-1000'></a>Contents</h3>
+   <div class='tableofcontents'>
+    <span class='sectionToc'>1 <a id='QQ2-1-2' href='#x1-20001'>Introduction</a></span>
+<br />    <span class='sectionToc'>2 <a id='QQ2-1-3' href='#x1-30002'>Gaussian Processes</a></span>
+<br />     <span class='subsectionToc'>2.1 <a id='QQ2-1-4' href='#x1-40002.1'>Gaussian Process Regression</a></span>
+<br />     <span class='subsectionToc'>2.2 <a id='QQ2-1-5' href='#x1-50002.2'>Multi-output Regression</a></span>
+<br />     <span class='subsectionToc'>2.3 <a id='QQ2-1-6' href='#x1-60002.3'>Kernel-based View</a></span>
+<br />     <span class='subsectionToc'>2.4 <a id='QQ2-1-7' href='#x1-70002.4'>Reproducing Kernel Hilbert Space</a></span>
+<br />     <span class='subsectionToc'>2.5 <a id='QQ2-1-8' href='#x1-80002.5'>Model Error</a></span>
+<br />    <span class='sectionToc'>3 <a id='QQ2-1-12' href='#x1-120003'>Model Selection</a></span>
+<br />     <span class='subsectionToc'>3.1 <a id='QQ2-1-13' href='#x1-130003.1'>Kernel Functions</a></span>
+<br />     <span class='subsectionToc'>3.2 <a id='QQ2-1-21' href='#x1-210003.2'>Hyperparameter Optimization</a></span>
+<br />    <span class='sectionToc'>4 <a id='QQ2-1-24' href='#x1-240004'>Gaussian Process Dynamical Models</a></span>
+<br />     <span class='subsectionToc'>4.1 <a id='QQ2-1-25' href='#x1-250004.1'>Gaussian Process State Space Models</a></span>
+<br />     <span class='subsectionToc'>4.2 <a id='QQ2-1-26' href='#x1-260004.2'>Gaussian Process Nonlinear Output Error Models</a></span>
+<br />    <span class='sectionToc'>5 <a id='QQ2-1-27' href='#x1-270005'>Summary</a></span>
+<br />    <span class='sectionToc'>6 <a id='QQ2-1-28' href='#x1-280006'>Conditional Distribution</a></span>
+<br />    <span class='sectionToc'><a id='QQ2-1-29' href='#x1-290006'>References</a></span>
+   </div>
+                                                                                         
+                                                                                         
+   <h3 class='sectionHead'><span class='titlemark'>1   </span> <a id='x1-20001'></a>Introduction</h3>
+<!-- l. 42 --><p class='noindent'>A Gaussian process (GP) is a stochastic process that is in general a collection of random variables
+indexed by time or space. Its special property is that any finite collection of these variables follows
+a multivariate Gaussian distribution. Thus, the GP is a distribution over infinitely many variables
+and, therefore, a distribution over functions with a continuous domain. Consequently, it describes a
+probability distribution over an infinite dimensional vector space. For engineering applications, the
+GP has gained increasing attention as supervised machine learning technique, where
+it is used as prior probability distribution over functions in Bayesian inference. The
+inference of continuous variables leads to Gaussian process regression (GPR) where the
+prior GP model is updated with training data to obtain a posterior GP distribution.
+Historically, GPR was used for the prediction of time series, at first presented by Wiener and
+Kolmogorov in the 1940’s. Afterwards, it became increasingly popular in geostatistics in the
+1970’s, where GPR is known as <span class='ec-lmri-12'>kriging</span>. Recently, it came back in the area of machine
+learning [<a href='#cite.0@neal1996bayesian'>Rad96</a>; <a href='#cite.0@williams1996gaussian'>WR96</a>], especially boosted by the rapidly increasing computational
+power.<br class='newline' />In this article, we present background information about GPs and GPR, mainly based on [<a href='#cite.0@rasmussen2006gaussian'>Ras06</a>],
+focusing on the application in control. We start with an introduction of GPs, explain the role of
+the underlying kernel function and show its relation to reproducing kernel Hilbert spaces.
+Afterwards, the embedding in dynamical systems and the interpretation of the model uncertainty
+as error bounds is presented. Several examples are included for an intuitive understanding in
+addition to the formal notation.
+</p>
+   <h3 class='sectionHead'><span class='titlemark'>2   </span> <a id='x1-30002'></a>Gaussian Processes</h3>
+<!-- l. 45 --><p class='noindent'>Let <span class='rm-lmr-12'>(Ω</span><sub>ss</sub><span class='rm-lmr-12'>, </span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->F<!-- /span --></span><sub><span class='lmmi-8'>σ</span></sub><span class='rm-lmr-12'>, </span><span class='lmmi-12'>P</span><span class='rm-lmr-12'>) </span>be a probability space with the sample space <span class='rm-lmr-12'>Ω</span><sub>ss</sub>, the corresponding <span class='lmmi-12'>σ</span>-algebra <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->F<!-- /span --></span><sub><span class='lmmi-8'>σ</span></sub>
+and the probability measure P. The index set is given by <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span --> ⊆ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>z</span></sub></sup> with positive integer <span class='lmmi-12'>n</span><sub>
+<span class='lmmi-8'>z</span></sub>. Then,
+a function <span class='lmmi-12'>f</span><sub>GP</sub><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>ω</span><sub>ss</sub><span class='rm-lmr-12'>)</span>, which is a measurable function of <span class='lmmi-12'>ω</span><sub>ss</sub> <span class='lmsy-10x-x-120'>∈ </span><span class='rm-lmr-12'>Ω</span><sub>ss</sub> with index <span class='lmmib-10x-x-120'>z </span><span class='lmsy-10x-x-120'>∈<!-- span 
+class="htf-calligraphy" -->Z<!-- /span --></span>, is called a
+stochastic process. The function <span class='lmmi-12'>f</span><sub>GP</sub><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>ω</span><sub>ss</sub><span class='rm-lmr-12'>) </span>is a random variable on <span class='rm-lmr-12'>Ω</span><sub>ss</sub> if <span class='lmmib-10x-x-120'>z </span><span class='lmsy-10x-x-120'>∈ <!-- span 
+class="htf-calligraphy" -->Z<!-- /span --> </span>is
+specified. It is simplified written as <span class='lmmi-12'>f</span><sub>GP</sub><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>)</span>. A GP is a stochastic process which is fully
+described by a mean function <span class='lmmi-12'>m</span><span class='rm-lmr-12'>: </span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span --> → </span><span class='msbm-10x-x-120'>ℝ </span>and covariance function <span class='lmmi-12'>k</span><span class='rm-lmr-12'>: </span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span --> ×<!-- span 
+class="htf-calligraphy" -->Z<!-- /span --> → </span><span class='msbm-10x-x-120'>ℝ </span>such
+that
+</p>
+   <div class='align'><img src='tutorial_material_html0x.png' alt='pict' /><a id='x1-3001r1'></a><a id='x1-3002r2'></a><a id='x1-3003r3'></a></div>
+<!-- l. 51 --><p class='indent'>   with <span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup> <span class='lmsy-10x-x-120'>∈<!-- span 
+class="htf-calligraphy" -->Z<!-- /span --></span>. The covariance function is a measure for the correlation of two states <span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup><span class='rm-lmr-12'>)</span>
+and is called <span class='ec-lmri-12'>kernel </span>in combination with GPs. Even though no analytic description of the
+probability density function of the GP exists in general, the interesting property is that any finite
+                                                                                         
+                                                                                         
+collection of its random variables <span class='lmsy-10x-x-120'>{</span><span class='lmmi-12'>f</span><sub>GP</sub><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><sub><span class='rm-lmr-8'>1</span></sub><span class='rm-lmr-12'>), </span><span class='lmmi-12'>…</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>f</span><sub>GP</sub><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><sub><span class='lmmi-8'>n</span><sub>GP</sub></sub><span class='rm-lmr-12'>)</span><span class='lmsy-10x-x-120'>} </span>follows a <span class='lmmi-12'>n</span><sub>GP</sub>-dimensional
+multivariate Gaussian distribution. As a GP defines a distribution over functions, each realization
+is also a function over the index set <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span --></span>.</p>
+<div class='mdframed' id='mdframed-1'>
+<div class='newtheorem'>
+<!-- l. 52 --><p class='noindent'><span class='head'>
+<a id='x1-3004r1'></a>
+<span class='ec-lmbx-12'>Example 1.</span>  </span>A GP <span class='lmmi-12'>f</span><sub>GP</sub><span class='rm-lmr-12'>(</span><span class='lmmi-12'>t</span><sub><span class='lmmi-8'>c</span></sub><span class='rm-lmr-12'>) </span><span class='lmsy-10x-x-120'>∼<!-- span 
+class="htf-calligraphy" -->G<!-- /span --><!-- span 
+class="htf-calligraphy" -->P<!-- /span --></span><img src='tutorial_material_html1x.png' align='middle' alt='(m (tc),k(tc,t′c))' class='left' /> with time <span class='lmmi-12'>t</span><sub><span class='lmmi-8'>c</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sub><span class='lmsy8-'>≥</span><span class='rm-lmr-8'>0</span></sub>, where
+</p>
+<div class='align'><img src='tutorial_material_html2x.png' alt='pict' /></div>
+<!-- l. 57 --><p class='noindent'>describes a time-dependent electric current signal with Gaussian white noise with a standard
+deviation of 0.1 A and a mean of 1 A.
+</p>
+</div>
+<!-- l. 58 --><p class='noindent'>
+</p><!-- l. 58 --><p class='noindent'></p>
+   </div>
+   <h4 class='subsectionHead'><span class='titlemark'>2.1   </span> <a id='x1-40002.1'></a>Gaussian Process Regression</h4>
+<!-- l. 61 --><p class='noindent'>The GP can be utilized as prior probability distribution in Bayesian inference, which allows to
+perform function regression. Following the Bayesian methodology, new information is combined
+with existing information: using Bayes’ theorem, the prior is combined with new data to obtain a
+posterior distribution. The new information is expressed as training data set <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --> </span><span class='rm-lmr-12'>= </span><span class='lmsy-10x-x-120'>{</span><span class='lmmi-12'>X</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>Y </span><span class='lmsy-10x-x-120'>}</span>.
+It contains the input values <span class='lmmi-12'>X </span><span class='rm-lmr-12'>= [</span><span class='lmmib-10x-x-120'>x</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='rm-lmr-8'>1</span><span class='lmsy8-'>}</span></sup><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>x</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='rm-lmr-8'>2</span><span class='lmsy8-'>}</span></sup><span class='rm-lmr-12'>, </span><span class='lmmi-12'>…</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>x</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='lmmi-8'>n</span><sub><span class='lmsy6-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub><span class='lmsy8-'>}</span></sup><span class='rm-lmr-12'>] </span><span class='lmsy-10x-x-120'>∈ <!-- span 
+class="htf-calligraphy" -->Z<!-- /span --></span><sup><span class='rm-lmr-8'>1</span><span class='lmsy8-'>×</span><span class='lmmi-8'>n</span><sub><span class='lmsy6-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub></sup> and output
+values <span class='lmmi-12'>Y </span><span class='rm-lmr-12'>= [</span><span class='lmmi-12'>ỹ</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='rm-lmr-8'>1</span><span class='lmsy8-'>}</span></sup><span class='rm-lmr-12'>, </span><span class='lmmi-12'>ỹ</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='rm-lmr-8'>2</span><span class='lmsy8-'>}</span></sup><span class='rm-lmr-12'>, </span><span class='lmmi-12'>…</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>ỹ</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='lmmi-8'>n</span><sub><span class='lmsy6-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub><span class='lmsy8-'>}</span></sup><span class='rm-lmr-12'>]</span><sup><span class='lmsy8-'>⊤</span></sup> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmsy6-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub></sup>, where
+</p>
+   <div class='align'><img src='tutorial_material_html3x.png' alt='pict' /><a id='x1-4001r4'></a></div>
+<!-- l. 65 --><p class='indent'>   for all <span class='lmmi-12'>i </span><span class='rm-lmr-12'>= 1, </span><span class='lmmi-12'>…</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>n</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub>. The output data might be corrupted by Gaussian noise <span class='lmmi-12'>ν </span><span class='lmsy-10x-x-120'>∼<!-- span 
+class="htf-calligraphy" -->N<!-- /span --></span><span class='rm-lmr-12'>(0, </span><span class='lmmi-12'>σ</span><sub><span class='lmmi-8'>n</span></sub><sup><span class='rm-lmr-8'>2</span></sup><span class='rm-lmr-12'>)</span>.
+</p>
+   <div class='newtheorem'>
+<!-- l. 67 --><p class='noindent'><span class='head'>
+<a id='x1-4002r1'></a>
+                                                                                         
+                                                                                         
+<span class='ec-lmbx-12'>Remark 1.</span>  </span><span class='ec-lmri-12'>Note that we always use the standard notation </span><span class='lmmi-12'>X </span><span class='ec-lmri-12'>for the input training data
+</span><span class='ec-lmri-12'>and </span><span class='lmmi-12'>Y </span><span class='ec-lmri-12'>for the output training data throughout this report.</span>
+</p>
+   </div>
+<!-- l. 69 --><p class='indent'>
+As any finite subset of a GP follows a multivariate Gaussian distribution, we can write the joint
+distribution
+</p>
+   <div class='align'><img src='tutorial_material_html4x.png' alt='pict' /><a id='x1-4003r5'></a></div>
+<!-- l. 74 --><p class='indent'>   for any arbitrary test point <span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>∗</span></sup> <span class='lmsy-10x-x-120'>∈<!-- span 
+class="htf-calligraphy" -->Z<!-- /span --></span>. The function <span class='lmmi-12'>m</span><span class='rm-lmr-12'>: </span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span --> → </span><span class='msbm-10x-x-120'>ℝ </span>denotes the mean function. The
+matrix function <span class='lmmi-12'>K </span><span class='rm-lmr-12'>: </span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span --></span><sup><span class='rm-lmr-8'>1</span><span class='lmsy8-'>×</span><span class='lmmi-8'>n</span><sub><span class='lmsy6-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub></sup> <span class='lmsy-10x-x-120'>×<!-- span 
+class="htf-calligraphy" -->Z<!-- /span --></span><sup><span class='rm-lmr-8'>1</span><span class='lmsy8-'>×</span><span class='lmmi-8'>n</span><sub><span class='lmsy6-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub></sup> <span class='lmsy-10x-x-120'>→ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmsy6-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub><span class='lmsy8-'>×</span><span class='lmmi-8'>n</span><sub><span class='lmsy6-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub></sup> is called the covariance or <span class='ec-lmri-12'>Gram matrix</span>
+with
+</p>
+   <div class='align'><img src='tutorial_material_html5x.png' alt='pict' /><a id='x1-4004r6'></a></div>
+<!-- l. 78 --><p class='indent'>   where each element of the matrix represents the covariance between two elements of the
+training data <span class='lmmi-12'>X</span>. The expression <span class='lmmi-12'>X</span><sub><span class='rm-lmr-8'>:,</span><span class='lmmi-8'>l</span></sub> denotes the <span class='lmmi-12'>l</span>-th column of <span class='lmmi-12'>X</span>. For notational
+simplification, we shorten <span class='lmmi-12'>K</span><span class='rm-lmr-12'>(</span><span class='lmmi-12'>X</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>X</span><span class='rm-lmr-12'>) </span>to <span class='lmmi-12'>K </span>when necessary. The vector-valued kernel
+function <span class='lmmib-10x-x-120'>k</span><span class='rm-lmr-12'>: </span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span -->×<!-- span 
+class="htf-calligraphy" -->Z<!-- /span --></span><sup><span class='rm-lmr-8'>1</span><span class='lmsy8-'>×</span><span class='lmmi-8'>n</span><sub><span class='lmsy6-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub></sup> <span class='lmsy-10x-x-120'>→ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmsy6-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub></sup> calculates the covariance between the test input <span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>∗</span></sup> and the input
+training data <span class='lmmi-12'>X</span>, i.e.,
+</p>
+   <div class='align'><img src='tutorial_material_html6x.png' alt='pict' /><a id='x1-4005r7'></a></div>
+<!-- l. 82 --><p class='indent'>   To obtain the posterior predictive distribution of <span class='lmmi-12'>f</span><sub>GP</sub><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>∗</span></sup><span class='rm-lmr-12'>)</span>, we condition on the test point <span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>∗</span></sup>
+and the training data set <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --> </span>given by
+</p>
+                                                                                         
+                                                                                         
+   <div class='align'><img src='tutorial_material_html7x.png' alt='pict' /><a id='x1-4006r8'></a></div>
+<!-- l. 86 --><p class='indent'>   Thus, the conditional posterior Gaussian distribution is defined by the mean and the
+variance
+</p>
+   <div class='align'><img src='tutorial_material_html8x.png' alt='pict' /><a id='x1-4007r9'></a></div>
+<!-- l. 91 --><p class='indent'>   A detailed derivation of the posterior mean and variance based on the joint distribution <a href='#x1-4003r5'>(5)</a> can
+be found in <a href='#x1-280006'>Section 6</a>. Analyzing <a href='#x1-4007r9'>(9)</a> we can make the following observations:<br class='newline' /><span class='ec-lmbx-12'>i) </span>The mean prediction can be written as
+</p>
+   <div class='align'><img src='tutorial_material_html9x.png' alt='pict' /><a id='x1-4008r10'></a></div>
+<!-- l. 96 --><p class='indent'>   with <span class='lmmib-10x-x-120'>α </span><span class='rm-lmr-12'>= (</span><span class='lmmi-12'>K </span><span class='rm-lmr-12'>+ </span><span class='lmmi-12'>σ</span><sub><span class='lmmi-8'>n</span></sub><sup><span class='rm-lmr-8'>2</span></sup><span class='lmmi-12'>I</span><sub>
+<span class='lmmi-8'>n</span><sub><span class='lmsy6-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub></sub><span class='rm-lmr-12'>)</span><sup><span class='lmsy8-'>−</span><span class='rm-lmr-8'>1</span></sup><img src='tutorial_material_html10x.png' align='middle' alt='(                            )
+ Y − [m (X:,1),...,m (X:,nD)]⊤' class='left' /><span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmsy6-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub></sup>. That formulation highlights
+the data-driven characteristic of the GPR as the posterior mean is a sum of kernel functions and
+its number grows with the number <span class='lmmi-12'>n</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub> of training data.<br class='newline' /><span class='ec-lmbx-12'>ii) </span>The variance does not depend on the observed data, but only on the inputs, which is a
+property of the Gaussian distribution. The variance is the difference between two terms:
+The first term <span class='lmmi-12'>k</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>∗</span></sup><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>∗</span></sup><span class='rm-lmr-12'>) </span>is simply the prior covariance from which a (positive) term is
+subtracted, representing the information the observations contain about the function. The
+uncertainty of the prediction, expressed in the variance, holds only for <span class='lmmi-12'>f</span><sub>GP</sub><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>∗</span></sup><span class='rm-lmr-12'>) </span>and
+does not consider the noise in the training data. For this purpose, an additional noise
+term <span class='lmmi-12'>σ</span><sub><span class='lmmi-8'>n</span></sub><sup><span class='rm-lmr-8'>2</span></sup><span class='lmmi-12'>I</span><sub>
+<span class='lmmi-8'>n</span><sub><span class='lmsy6-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub></sub> can be added to the variance in <a href='#x1-4007r9'>(9)</a>. Finally, <a href='#x1-4007r9'>(9)</a> clearly shows the strong
+dependence of the posterior mean and variance on the kernel <span class='lmmi-12'>k </span>that we will discuss in depth
+in <a href='#x1-120003'>Section 3</a>.</p>
+<div class='mdframed' id='mdframed-2'>
+<div class='newtheorem'>
+<!-- l. 98 --><p class='noindent'><span class='head'>
+<a id='x1-4009r2'></a>
+<span class='ec-lmbx-12'>Example 2.</span>  </span>We assume a GP with zero mean and a kernel function given by
+</p>
+                                                                                         
+                                                                                         
+<div class='align'><img src='tutorial_material_html11x.png' alt='pict' /></div>
+<!-- l. 103 --><p class='noindent'>as prior distribution. The training data set <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --> </span>is assumed to be
+</p>
+<div class='align'><img src='tutorial_material_html12x.png' alt='pict' /></div>
+<!-- l. 112 --><p class='noindent'>where the output is corrupted by Gaussian noise with <span class='lmmi-12'>σ</span><sub><span class='lmmi-8'>n</span></sub> <span class='rm-lmr-12'>= 0.0498 </span>standard deviation and the test
+point is assumed to be <span class='lmmi-12'>z</span><sup><span class='lmsy8-'>∗</span></sup> <span class='rm-lmr-12'>= 5</span>. According to (6) to (9) the Gram matrix <span class='lmmi-12'>K</span><span class='rm-lmr-12'>(</span><span class='lmmi-12'>X</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>X</span><span class='rm-lmr-12'>) </span>is calculated
+as
+</p>
+<div class='align'><img src='tutorial_material_html13x.png' alt='pict' /></div>
+<!-- l. 121 --><p class='noindent'>and the kernel vector <span class='lmmib-10x-x-120'>k</span><span class='rm-lmr-12'>(</span><span class='lmmi-12'>z</span><sup><span class='lmsy8-'>∗</span></sup><span class='rm-lmr-12'>, </span><span class='lmmi-12'>X</span><span class='rm-lmr-12'>) </span>and <span class='lmmi-12'>k</span><span class='rm-lmr-12'>(</span><span class='lmmi-12'>z</span><sup><span class='lmsy8-'>∗</span></sup><span class='rm-lmr-12'>, </span><span class='lmmi-12'>z</span><sup><span class='lmsy8-'>∗</span></sup><span class='rm-lmr-12'>) </span>are obtained to be
+</p>
+<div class='align'><img src='tutorial_material_html14x.png' alt='pict' /></div>
+<!-- l. 128 --><p class='noindent'>Finally, with <a href='#x1-4007r9'>(9)</a>, we compute the predicted mean and variance for <span class='lmmi-12'>f</span><sub>GP</sub><span class='rm-lmr-12'>(</span><span class='lmmi-12'>z</span><sup><span class='lmsy8-'>∗</span></sup><span class='rm-lmr-12'>)</span>
+</p>
+<div class='align'><img src='tutorial_material_html15x.png' alt='pict' /></div>
+<!-- l. 132 --><p class='noindent'>which is equivalent to a <span class='rm-lmr-12'>2</span><span class='lmmi-12'>σ</span>-standard deviation of <span class='rm-lmr-12'>0.0775</span>. <a href='#x1-4010r1'>Figure 1</a> shows the prior distribution
+(left), the posterior distribution with two training points (black crosses) in the middle, and
+the posterior distribution given the full training set <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --> </span>(right). The solid red line is
+the mean function and the gray shaded area indicates the <span class='rm-lmr-12'>2</span><span class='lmmi-12'>σ</span>-standard deviation. Five
+                                                                                         
+                                                                                         
+realizations (dashed lines) visualize the character of the distribution over functions.
+</p>
+<div class='center'>
+<!-- l. 133 --><p class='noindent'>
+</p><!-- l. 135 --><p class='noindent'> <img src='tikzextern/section2_prior_posterior-.png' alt='PIC' id="responsive-image"/>  <a id='x1-4010r1'></a><a id='x1-4011'></a>
+</p>
+<figcaption class='caption'><span class='id'>Figure 1: </span><span class='content'>The prior distribution of a GP is updated with data that leads to the posterior
+distribution.                                                                             </span></figcaption><!-- tex4ht:label?: x1-4010r2  -->
+</div>
+</div>
+<!-- l. 140 --><p class='noindent'>
+</p><!-- l. 140 --><p class='noindent'></p>
+   </div>
+   <h4 class='subsectionHead'><span class='titlemark'>2.2   </span> <a id='x1-50002.2'></a>Multi-output Regression</h4>
+<!-- l. 142 --><p class='noindent'>So far, the GP regression allows functions with scalar outputs as in <a href='#x1-4007r9'>(9)</a>. For the extension to
+vector-valued outputs, multiple approaches exist: i) Extending the kernel to multivariate
+outputs [<a href='#cite.0@MAL-036'>ÁRL12</a>], ii) adding the output dimension as training data [<a href='#cite.0@berkenkamp2017safe'>Ber+17</a>] or iii) using
+separated GPR for each output [<a href='#cite.0@rasmussen2006gaussian'>Ras06</a>]. While the first two approaches set a prior on the
+correlation between the output dimensions, the latter disregards a correlation without loss of
+generality. Following the approach in iii), the previous definition of the training set <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --> </span>is extended
+to a vector-valued output with
+</p>
+   <div class='align'><img src='tutorial_material_html16x.png' alt='pict' /><a id='x1-5001r11'></a></div>
+<!-- l. 146 --><p class='indent'>   where <span class='lmmi-12'>n</span><sub><span class='lmmi-8'>y</span>dat</sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℕ </span>is the dimension of the output and the vector-valued GP is defined
+by
+</p>
+   <div class='align'><img src='tutorial_material_html17x.png' alt='pict' /><a id='x1-5002r12'></a><a id='x1-5003r13'></a></div>
+<!-- l. 151 --><p class='indent'>   Following (5) to (9), we obtain for the predicted mean and variance
+                                                                                         
+                                                                                         
+</p>
+   <div class='align'><img src='tutorial_material_html18x.png' alt='pict' /><a id='x1-5004r14'></a></div>
+<!-- l. 156 --><p class='indent'>   for each output dimension <span class='lmmi-12'>i </span><span class='lmsy-10x-x-120'>∈{</span><span class='rm-lmr-12'>1, </span><span class='lmmi-12'>…</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>n</span><sub><span class='lmmi-8'>y</span>dat</sub><span class='lmsy-10x-x-120'>} </span>with respect to the kernels <span class='lmmi-12'>k</span><sup><span class='rm-lmr-8'>1</span></sup><span class='rm-lmr-12'>, </span><span class='lmmi-12'>…</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>k</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>y</span>dat</sub></sup>. The
+variable <span class='lmmi-12'>σ</span><sub><span class='lmmi-8'>n</span><span class='rm-lmr-8'>,</span><span class='lmmi-8'>i</span></sub> denotes the standard deviation of the Gaussian noise that corrupts the <span class='lmmi-12'>i</span>-th
+dimension of the output measurements. The <span class='lmmi-12'>n</span><sub><span class='lmmi-8'>y</span>dat</sub> components of <span class='lmmib-10x-x-120'>f</span><sub>GP</sub><span class='lmsy-10x-x-120'>|</span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>∗</span></sup><span class='rm-lmr-12'>, </span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --> </span>are combined into a
+multi-variable Gaussian distribution with
+</p>
+   <div class='align'><img src='tutorial_material_html19x.png' alt='pict' /><a id='x1-5005r15'></a></div>
+<!-- l. 161 --><p class='indent'>   where <span class='rm-lmr-12'>Σ(</span><span class='lmmib-10x-x-120'>f</span><sub>GP</sub><span class='lmsy-10x-x-120'>|</span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>∗</span></sup><span class='rm-lmr-12'>, </span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span><span class='rm-lmr-12'>) </span>denotes the posterior variance matrix. This formulation allows to use a
+GP prior on vector-valued functions to perform predictions for test points <span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>∗</span></sup>. This approach treats
+each output dimension separately which is mostly sufficient and easy-to-handle. An alternative
+approach is to include the dimension as additional input, e.g., as in [<a href='#cite.0@berkenkamp2017safe'>Ber+17</a>], with the benefit of a
+single GP at the price of loss of interpretability. For highly correlated output data, a multi-output
+kernel might be beneficial, see [<a href='#cite.0@MAL-036'>ÁRL12</a>].
+</p>
+   <div class='newtheorem'>
+<!-- l. 162 --><p class='noindent'><span class='head'>
+<a id='x1-5006r2'></a>
+<span class='ec-lmbx-12'>Remark 2.</span>  </span><span class='ec-lmri-12'>Without  specific  knowledge  about  a  trend  in  the  data,  the  prior  mean
+</span><span class='ec-lmri-12'>functions </span><span class='lmmi-12'>m</span><sup><span class='rm-lmr-8'>1</span></sup><span class='rm-lmr-12'>, </span><span class='lmmi-12'>…</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>m</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>y</span><span class='ec-lmri-12'>dat</span></sub></sup>  <span class='ec-lmri-12'>are  often  set  to  zero,  see [</span><a href='#cite.0@rasmussen2006gaussian'><span class='ec-lmri-12'>Ras06</span></a><span class='ec-lmri-12'>].  Therefore,  we  set  the  mean
+</span><span class='ec-lmri-12'>functions to zero for the remainder of the report if not stated otherwise.</span>
+</p>
+   </div>
+<!-- l. 164 --><p class='indent'>
+</p>
+   <h4 class='subsectionHead'><span class='titlemark'>2.3   </span> <a id='x1-60002.3'></a>Kernel-based View</h4>
+<!-- l. 167 --><p class='noindent'>In <a href='#x1-40002.1'>Section 2.1</a>, we target the GPR from a Bayesian perspective. However, for some applications of
+GPR a different point of view is beneficial; namely from the kernel perspective. In the following, we
+                                                                                         
+                                                                                         
+derive GPR from linear regression that is extended with a kernel transformation. In general, the
+prediction of parametric models is based on a parameter vector <span class='lmmib-10x-x-120'>w</span> which is typically learned using
+a set of training data points. In contrast, non-parametric models typically maintain at least a
+subset of the training data points in memory in order to make predictions for new data
+points. Many linear models can be transformed into a dual representation where the
+prediction is based on a linear combination of kernel functions. The idea is to transform
+the data points of a model to an often high-dimensional feature space where a linear
+regression can be applied to predict the model output, as depicted in <a href='#x1-6001r2'>Fig. 2</a>. For a
+nonlinear feature map <span class='lmmib-10x-x-120'>ϕ</span><span class='rm-lmr-12'>: </span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span --> →<!-- span 
+class="htf-calligraphy" -->F<!-- /span --></span>, where <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->F<!-- /span --> </span>is a <span class='lmmi-12'>n</span><sub><span class='lmmi-8'>ϕ</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℕ </span><span class='lmsy-10x-x-120'>∪{∞} </span>dimensional Hilbert space,
+the kernel function is given by the inner product <span class='lmmi-12'>k</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup><span class='rm-lmr-12'>) = </span><span class='lmsy-10x-x-120'>⟨</span><span class='lmmib-10x-x-120'>ϕ</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>), </span><span class='lmmib-10x-x-120'>ϕ</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup><span class='rm-lmr-12'>)</span><span class='lmsy-10x-x-120'>⟩</span><span class='rm-lmr-12'>, </span><span class='lmsy-10x-x-120'>∀</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup> <span class='lmsy-10x-x-120'>∈ <!-- span 
+class="htf-calligraphy" -->Z<!-- /span --></span>.
+</p><figure class='figure'> 
+
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+<div class='center'>
+<!-- l. 169 --><p class='noindent'>
+</p><!-- l. 170 --><p class='noindent'> <img src='tikzextern/section2_kernel_trick-.png' alt='PIC' id="responsive-image"/>  <a id='x1-6001r2'></a>
+<a id='x1-6002'></a>
+</p>
+<figcaption class='caption'><span class='id'>Figure 2: </span><span class='content'>The mapping <span class='lmmib-10x-x-120'>ϕ</span> transforms the data points into a feature space where linear
+regressors can be applied to predict the output.                                           </span></figcaption><!-- tex4ht:label?: x1-6001r2  --></div>
+                                                                                         
+                                                                                         
+   </figure>
+<!-- l. 176 --><p class='indent'>   Thus, the kernel implicitly encodes the way the data points are transformed into a higher
+dimensional space. The formulation as inner product in a feature space allows to extend many
+standard regression methods. Also the GPR can be derived using a standard linear regression
+model
+</p>
+   <div class='align'><img src='tutorial_material_html20x.png' alt='pict' /><a id='x1-6003r16'></a></div>
+<!-- l. 180 --><p class='indent'>   where <span class='lmmib-10x-x-120'>z </span><span class='lmsy-10x-x-120'>∈ <!-- span 
+class="htf-calligraphy" -->Z<!-- /span --> </span>is the input vector, <span class='lmmib-10x-x-120'>w </span><span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>z</span></sub></sup> the vector of weights with <span class='lmmi-12'>n</span><sub>
+<span class='lmmi-8'>z</span></sub> <span class='rm-lmr-12'>= </span><span class='rm-lmr-12'>dim(</span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span --></span><span class='rm-lmr-12'>)</span>
+and <span class='lmmi-12'>f</span><sub>lin</sub><span class='rm-lmr-12'>: </span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span --> → </span><span class='msbm-10x-x-120'>ℝ </span>the unknown function. The observed value <span class='lmmi-12'>ỹ</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='lmmi-8'>i</span><span class='lmsy8-'>}</span></sup> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ </span>for the
+input <span class='lmmib-10x-x-120'>x</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='lmmi-8'>i</span><span class='lmsy8-'>}</span></sup> <span class='lmsy-10x-x-120'>∈<!-- span 
+class="htf-calligraphy" -->Z<!-- /span --> </span>is corrupted by Gaussian noise <span class='lmmi-12'>ν </span><span class='lmsy-10x-x-120'>∼<!-- span 
+class="htf-calligraphy" -->N<!-- /span --></span><span class='rm-lmr-12'>(0, </span><span class='lmmi-12'>σ</span><sub>
+<span class='lmmi-8'>n</span></sub><sup><span class='rm-lmr-8'>2</span></sup><span class='rm-lmr-12'>) </span>for all <span class='lmmi-12'>i </span><span class='rm-lmr-12'>= 1, </span><span class='lmmi-12'>…</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>n</span><sub>
+<span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub>. The analysis
+of this model is analogous to the standard linear regression, i.e., we put a prior on the
+weights such that <span class='lmmib-10x-x-120'>w </span><span class='lmsy-10x-x-120'>∼ <!-- span 
+class="htf-calligraphy" -->N<!-- /span --></span><span class='rm-lmr-12'>(</span><span class='rm-lmbx-12'>0</span><span class='rm-lmr-12'>, Σ</span><sub><span class='lmmi-8'>p</span></sub><span class='rm-lmr-12'>) </span>with <span class='rm-lmr-12'>Σ</span><sub><span class='lmmi-8'>p</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>z</span></sub><span class='lmsy8-'>×</span><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>z</span></sub></sup>. Based on <span class='lmmi-12'>n</span><sub>
+<span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub> collected training
+data points as defined in <a href='#x1-40002.1'>Section 2.1</a>, that leads to the well known linear Bayesian
+regression
+</p>
+   <div class='align'><img src='tutorial_material_html21x.png' alt='pict' /><a id='x1-6004r17'></a></div>
+<!-- l. 184 --><p class='indent'>   where <span class='lmmi-12'>A</span><sub>lin</sub> <span class='rm-lmr-12'>= </span><span class='lmmi-12'>σ</span><sub><span class='lmmi-8'>n</span></sub><sup><span class='lmsy8-'>−</span><span class='rm-lmr-8'>2</span></sup><span class='lmmi-12'>XX</span><sup><span class='lmsy8-'>⊤</span></sup> <span class='rm-lmr-12'>+ Σ</span><sub>
+<span class='lmmi-8'>p</span></sub><sup><span class='lmsy8-'>−</span><span class='rm-lmr-8'>1</span></sup>. Now, using the feature map <span class='lmmib-10x-x-120'>ϕ</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>) </span>instead of <span class='lmmib-10x-x-120'>z</span> directly, leads
+to <span class='lmmi-12'>f</span><sub>GP</sub><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>) = </span><span class='lmmib-10x-x-120'>ϕ</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>)</span><sup><span class='lmsy8-'>⊤</span></sup><span class='accentcheck'><span class='lmmib-10x-x-120'>w</span></span> with <span class='accentcheck'><span class='lmmib-10x-x-120'>w</span> </span><span class='lmsy-10x-x-120'>∼<!-- span 
+class="htf-calligraphy" -->N<!-- /span --></span><span class='rm-lmr-12'>(</span><span class='rm-lmbx-12'>0</span><span class='rm-lmr-12'>, </span><span class='accentcheck'><span class='rm-lmr-12'>Σ</span></span><sub>
+<span class='lmmi-8'>p</span></sub><span class='rm-lmr-12'>), </span><span class='accentcheck'><span class='rm-lmr-12'>Σ</span></span><sub><span class='lmmi-8'>p</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ϕ</span></sub><span class='lmsy8-'>×</span><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ϕ</span></sub></sup>. As long as the projections are fixed
+functions, i.e., independent of the parameters <span class='lmmi-12'>w</span>, the model is still linear in the parameters and,
+thus, analytically tractable. In particular, the Bayesian regression <a href='#x1-6004r17'>(17)</a> with the mapping <span class='lmmib-10x-x-120'>ϕ</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>)</span>
+can be written as
+</p>
+   <div class='align'><img src='tutorial_material_html22x.png' alt='pict' /><a id='x1-6005r18'></a></div>
+<!-- l. 188 --><p class='indent'>   with the matrix <span class='lmmi-12'>A</span><sub>GP</sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ϕ</span></sub><span class='lmsy8-'>×</span><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ϕ</span></sub></sup> given by
+</p>
+   <div class='align'><img src='tutorial_material_html23x.png' alt='pict' /><a id='x1-6006r19'></a></div>
+                                                                                         
+                                                                                         
+<!-- l. 192 --><p class='indent'>   This equation can be simplified and rewritten to
+</p>
+   <div class='align'><img src='tutorial_material_html24x.png' alt='pict' /><a id='x1-6007r20'></a></div>
+<!-- l. 196 --><p class='indent'>   with <span class='lmmi-12'>k</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup><span class='rm-lmr-12'>) = </span><span class='lmmib-10x-x-120'>ϕ</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>)</span><sup><span class='lmsy8-'>⊤</span></sup><span class='accentcheck'><span class='rm-lmr-12'>Σ</span></span><sub>
+<span class='lmmi-8'>p</span></sub><span class='lmmib-10x-x-120'>ϕ</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup><span class='rm-lmr-12'>) </span>that equals <a href='#x1-4007r9'>(9)</a>. The fact that in <a href='#x1-6007r20'>(20)</a> the feature map <span class='lmmib-10x-x-120'>ϕ</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>) </span>is
+not needed is known as the <span class='ec-lmri-12'>kernel trick</span>. This trick is also used in other kernel-based models, e.g.,
+support vector machines (SVM), see [<a href='#cite.0@steinwart2008support'>SC08</a>] for more details.
+</p>
+   <h4 class='subsectionHead'><span class='titlemark'>2.4   </span> <a id='x1-70002.4'></a>Reproducing Kernel Hilbert Space</h4>
+<!-- l. 199 --><p class='noindent'>Even though a kernel neither uniquely defines the feature map nor the feature space, one can
+always construct a canonical feature space, namely the <span class='ec-lmri-12'>reproducing kernel Hilbert space </span>(RKHS)
+given a certain kernel. After the introduction of the theory, illustrative examples for an intuitive
+understanding are presented. We will now formally present this construction procedure, starting
+with the concept of Hilbert spaces, following [<a href='#cite.0@bhujwalla2016impact'>BLG16</a>]: A Hilbert space <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->F<!-- /span --> </span>represents all possible
+realizations of some class of functions, for example all functions of continuity degree <span class='lmmi-12'>i</span>, denoted
+by <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->C<!-- /span --></span><sup><span class='lmmi-8'>i</span></sup>. Moreover, a Hilbert space is a vector space such that any function <span class='lmmi-12'>f</span><sub>
+<span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->F<!-- /span --></span></sub> <span class='lmsy-10x-x-120'>∈<!-- span 
+class="htf-calligraphy" -->F<!-- /span --> </span>must have a
+non-negative norm, <span class='lmsy-10x-x-120'>∥</span><span class='lmmi-12'>f</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->F<!-- /span --></span></sub><span class='lmsy-10x-x-120'>∥</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->F<!-- /span --></span></sub> <span class='lmmi-12'>&gt; </span><span class='rm-lmr-12'>0 </span>for <span class='lmmi-12'>f</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->F<!-- /span --></span></sub><span class='lmmi-12'>≠</span><span class='rm-lmr-12'>0</span>. All functions <span class='lmmi-12'>f</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->F<!-- /span --></span></sub> must additionally be equipped
+with an inner-product in <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->F<!-- /span --></span>. Simply speaking, a Hilbert space is an infinite dimensional
+vector space, where many operations behave like in the finite case. The properties of
+Hilbert spaces have been explored in great detail in literature, e.g., in [<a href='#cite.0@debnath2005introduction'>DM+05</a>]. An
+extremely useful property of Hilbert spaces is that they are equivalent to an associated
+kernel function [<a href='#cite.0@aronszajn1950theory'>Aro50</a>]. This equivalence allows to simply define a kernel, instead of
+fully defining the associated vector space. Formally speaking, if a Hilbert space <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --> </span>is a
+RKHS, it will have a unique positive definite kernel <span class='lmmi-12'>k</span><span class='rm-lmr-12'>: </span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span --> ×<!-- span 
+class="htf-calligraphy" -->Z<!-- /span --> → </span><span class='msbm-10x-x-120'>ℝ</span>, which spans the
+space <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span>.</p>
+<div class='mdframed' id='mdframed-3'>
+<div class='newtheorem'>
+<!-- l. 200 --><p class='noindent'><span class='head'>
+<a id='x1-7001r1'></a>
+<span class='ec-lmbx-12'>Theorem 1 </span>(Moore-Aronszajn [<a href='#cite.0@aronszajn1950theory'>Aro50</a>])<span class='ec-lmbx-12'>.</span>  </span><span class='ec-lmri-12'>Every positive definite kernel </span><span class='lmmi-12'>k </span><span class='ec-lmri-12'>is associated with
+</span><span class='ec-lmri-12'>a unique RKHS </span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span><span class='ec-lmri-12'>.</span>
+</p>
+</div>
+<!-- l. 202 --><p class='noindent'>
+</p><!-- l. 202 --><p class='noindent'></p>
+   </div>
+                                                                                         
+                                                                                         
+<div class='mdframed' id='mdframed-4'>
+<div class='newtheorem'>
+<!-- l. 203 --><p class='noindent'><span class='head'>
+<a id='x1-7002r2'></a>
+<span class='ec-lmbx-12'>Theorem 2 </span>([<a href='#cite.0@aronszajn1950theory'>Aro50</a>])<span class='ec-lmbx-12'>.</span>  </span><span class='ec-lmri-12'>Let </span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->F<!-- /span --> </span><span class='ec-lmri-12'>be a Hilbert space, </span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span --> </span><span class='ec-lmri-12'>a non-empty set and </span><span class='lmmib-10x-x-120'>ϕ</span><span class='rm-lmr-12'>: </span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span --> →<!-- span 
+class="htf-calligraphy" -->F<!-- /span --></span><span class='ec-lmri-12'>. Then,
+</span><span class='ec-lmri-12'>the inner product </span><span class='lmsy-10x-x-120'>⟨</span><span class='lmmib-10x-x-120'>ϕ</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>), </span><span class='lmmib-10x-x-120'>ϕ</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup><span class='rm-lmr-12'>)</span><span class='lmsy-10x-x-120'>⟩</span><sub>
+<span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->F<!-- /span --></span></sub> <span class='rm-lmr-12'>: </span><span class='rm-lmr-12'>= </span><span class='lmmi-12'>k</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup><span class='rm-lmr-12'>) </span><span class='ec-lmri-12'>is positive definite.</span>
+</p>
+</div>
+<!-- l. 205 --><p class='noindent'>
+</p><!-- l. 205 --><p class='noindent'></p>
+   </div>
+<!-- l. 206 --><p class='indent'>   Importantly, any function <span class='lmmi-12'>f</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span></sub> in <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --> </span>can be represented as a weighted linear sum of this kernel
+evaluated over the space <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span>, as
+</p>
+   <div class='align'><img src='tutorial_material_html25x.png' alt='pict' /><a id='x1-7003r21'></a></div>
+<!-- l. 210 --><p class='indent'>   with <span class='lmmi-12'>α</span><sub><span class='lmmi-8'>i</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ </span>for all <span class='lmmi-12'>i </span><span class='rm-lmr-12'>= </span><span class='lmsy-10x-x-120'>{</span><span class='rm-lmr-12'>1, </span><span class='lmmi-12'>…</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>n</span><sub><span class='lmmi-8'>ϕ</span></sub><span class='lmsy-10x-x-120'>}</span>, where <span class='lmmi-12'>n</span><sub><span class='lmmi-8'>ϕ</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℕ </span><span class='lmsy-10x-x-120'>∪{∞} </span>is the dimension of the feature
+space <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->F<!-- /span --></span>. Thus, the RKHS is equipped with the inner-product
+</p>
+   <div class='align'><img src='tutorial_material_html26x.png' alt='pict' /><a id='x1-7004r22'></a></div>
+<!-- l. 214 --><p class='indent'>   with <span class='lmmi-12'>f</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span></sub><sup><span class='lmsy8-'>′</span></sup><span class='rm-lmr-12'>(</span><span class='lmsy-10x-x-120'>⋅</span><span class='rm-lmr-12'>) = </span><span class='lmex-10'>∑</span><sub>
+<span class='lmmi-8'>j</span><span class='rm-lmr-8'>=1</span></sub><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ϕ</span></sub></sup><span class='lmmi-12'>α</span><sub>
+<span class='lmmi-8'>j</span></sub><sup><span class='lmsy8-'>′</span></sup><span class='lmmi-12'>k</span><img src='tutorial_material_html27x.png' align='middle' alt='( ′{j}  )
+ xdat ,⋅' class='left' /><span class='lmsy-10x-x-120'>∈<!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>α</span><sub><span class='lmmi-8'>j</span></sub><sup><span class='lmsy8-'>′</span></sup> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span>. Now, the reproducing character manifests
+as
+</p>
+   <div class='align'><img src='tutorial_material_html28x.png' alt='pict' /><a id='x1-7005r23'></a></div>
+<!-- l. 218 --><p class='indent'>   According to [<a href='#cite.0@steinwart2006explicit'>SHS06</a>], the RKHS is then defined as
+</p>
+                                                                                         
+                                                                                         
+   <div class='align'><img src='tutorial_material_html29x.png' alt='pict' /><a id='x1-7006r24'></a></div>
+<!-- l. 222 --><p class='indent'>   where <span class='lmmib-10x-x-120'>ϕ</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>) </span>is the feature map constructing the kernel through <span class='lmmi-12'>k</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup><span class='rm-lmr-12'>) = </span><span class='lmsy-10x-x-120'>⟨</span><span class='lmmib-10x-x-120'>ϕ</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>), </span><span class='lmmib-10x-x-120'>ϕ</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup><span class='rm-lmr-12'>)</span><span class='lmsy-10x-x-120'>⟩</span><sub>
+<span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->F<!-- /span --></span></sub>.</p>
+<div class='mdframed' id='mdframed-5'>
+<div class='newtheorem'>
+<!-- l. 223 --><p class='noindent'><span class='head'>
+<a id='x1-7007r3'></a>
+<span class='ec-lmbx-12'>Example 3.</span>  </span>We want to find the RKHS for the polynomial kernel with degree <span class='rm-lmr-12'>2 </span>that is given
+by
+</p>
+<div class='align'><img src='tutorial_material_html30x.png' alt='pict' /></div>
+<!-- l. 228 --><p class='noindent'>for any <span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='rm-lmr-8'>2</span></sup>. First, we have to find a feature map <span class='lmmib-10x-x-120'>ϕ</span> such that the kernel corresponds to
+the inner product <span class='lmmi-12'>k</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>y</span><span class='rm-lmr-12'>) = </span><span class='lmsy-10x-x-120'>⟨</span><span class='lmmib-10x-x-120'>ϕ</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>), </span><span class='lmmib-10x-x-120'>ϕ</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>y</span><span class='rm-lmr-12'>)</span><span class='lmsy-10x-x-120'>⟩</span>. A possible candidate for the feature map
+is
+</p>
+<div class='align'><img src='tutorial_material_html31x.png' alt='pict' /></div>
+<!-- l. 235 --><p class='noindent'>We know that the RKHS contains all linear combinations of the form
+</p>
+<div class='align'><img src='tutorial_material_html32x.png' alt='pict' /></div>
+<!-- l. 240 --><p class='noindent'>with <span class='lmmib-10x-x-120'>α</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>c</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>x</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='lmmi-8'>i</span><span class='lmsy8-'>}</span></sup> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='rm-lmr-8'>3</span></sup>. Therefore, a possible candidate for the RKHS <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --> </span>is given by
+</p>
+                                                                                         
+                                                                                         
+<div class='align'><img src='tutorial_material_html33x.png' alt='pict' /><a id='x1-7008r25'></a></div>
+<!-- l. 244 --><p class='noindent'>Next, it must be checked if the proposed Hilbert space is the related RKHS to the polynomial
+kernel with degree <span class='rm-lmr-12'>2</span>. This is achieved in two steps: i) Checking if the space is a Hilbert space
+and ii) confirming the reproducing property. First, we can easily proof that this is a
+Hilbert space rewriting <span class='lmmi-12'>f</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span></sub><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>) = </span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>⊤</span></sup><span class='lmmi-12'>S</span><span class='lmmib-10x-x-120'>z</span> with symmetric matrix <span class='lmmi-12'>S </span><span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='rm-lmr-8'>2</span><span class='lmsy8-'>×</span><span class='rm-lmr-8'>2</span></sup> and using
+the fact that <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --> </span>is euclidean and isomorphic to <span class='lmmi-12'>S</span>. Second, the condition for an RKHS
+must be fulfilled, i.e., the reproducing property <span class='lmmi-12'>f</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span></sub><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>) = </span><span class='lmsy-10x-x-120'>⟨</span><span class='lmmi-12'>f</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span></sub><span class='rm-lmr-12'>(</span><span class='lmsy-10x-x-120'>⋅</span><span class='rm-lmr-12'>), </span><span class='lmmi-12'>k</span><span class='rm-lmr-12'>(</span><span class='lmsy-10x-x-120'>⋅</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>)</span><span class='lmsy-10x-x-120'>⟩</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span></sub>. Since we can
+write
+</p>
+<div class='align'><img src='tutorial_material_html34x.png' alt='pict' /></div>
+<!-- l. 248 --><p class='noindent'>property <a href='#x1-7005r23'>(23)</a> is fulfilled and, thus, <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --> </span>is the RKHS for the polynomial kernel with degree <span class='rm-lmr-12'>2</span>. Note
+that, even though the mapping <span class='lmmib-10x-x-120'>ϕ</span> is not unique for the kernel <span class='lmmi-12'>k</span>, the relation of <span class='lmmi-12'>k </span>and the
+RKHS <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --> </span>is unique.
+</p>
+</div>
+<!-- l. 249 --><p class='noindent'>
+</p><!-- l. 249 --><p class='noindent'></p>
+   </div>
+<!-- l. 250 --><p class='indent'>   Given a function <span class='lmmi-12'>f</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span></sub> <span class='lmsy-10x-x-120'>∈ <!-- span 
+class="htf-calligraphy" -->H<!-- /span --> </span>defined by <span class='lmmi-12'>n</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub> observations, its RKHS norm is defined
+as
+</p>
+   <div class='align'><img src='tutorial_material_html35x.png' alt='pict' /><a id='x1-7009r26'></a></div>
+<!-- l. 254 --><p class='indent'>   with <span class='lmmib-10x-x-120'>α </span><span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmsy6-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub></sup> and <span class='lmmi-12'>K</span><span class='rm-lmr-12'>(</span><span class='lmmi-12'>X</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>X</span><span class='rm-lmr-12'>) </span>given by <a href='#x1-4004r6'>(6)</a>. We can also use the feature map such
+that
+</p>
+   <div class='align'><img src='tutorial_material_html36x.png' alt='pict' /><a id='x1-7010r27'></a></div>
+                                                                                         
+                                                                                         
+<!-- l. 258 --><p class='indent'>   As there is a unique relation between the RKHS <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --> </span>and the kernel <span class='lmmi-12'>k</span>, the norm <span class='lmsy-10x-x-120'>∥</span><span class='lmmi-12'>f</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span></sub><span class='lmsy-10x-x-120'>∥</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span></sub> can
+equivalently be written as <span class='lmsy-10x-x-120'>∥</span><span class='lmmi-12'>f</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span></sub><span class='lmsy-10x-x-120'>∥</span><sub><span class='lmmi-8'>k</span></sub>. The norm of a function in the RKHS indicates how fast the
+function varies over <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span --> </span>with respect to the geometry defined by the kernel. Formally, it can be
+written as
+</p>
+   <div class='align'><img src='tutorial_material_html37x.png' alt='pict' /><a id='x1-7011r28'></a></div>
+<!-- l. 262 --><p class='indent'>   with the distance <span class='lmmi-12'>d</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup><span class='rm-lmr-12'>)</span><sup><span class='rm-lmr-8'>2</span></sup> <span class='rm-lmr-12'>= </span><span class='lmmi-12'>k</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>) </span><span class='lmsy-10x-x-120'>− </span><span class='rm-lmr-12'>2</span><span class='lmmi-12'>k</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup><span class='rm-lmr-12'>) + </span><span class='lmmi-12'>k</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup><span class='rm-lmr-12'>)</span>. A function with finite RKHS norm
+is also element of the RKHS. A more detailed discussion about RKHS and norms is given
+in [<a href='#cite.0@wahba1990spline'>Wah90</a>].
+                                                                                         
+                                                                                         
+</p>
+<div class='mdframed' id='mdframed-6'>
+<div class='newtheorem'>
+<!-- l. 263 --><p class='noindent'><span class='head'>
+<a id='x1-7012r4'></a>
+<span class='ec-lmbx-12'>Example 4.</span>  </span>We want to find the RKHS norm of a function <span class='lmmi-12'>f</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span></sub> that is an element of the RKHS of
+the polynomial kernel with degree <span class='rm-lmr-12'>2 </span>that is given by
+</p>
+<div class='align'><img src='tutorial_material_html38x.png' alt='pict' /></div>
+<!-- l. 268 --><p class='noindent'>Let the function be
+</p>
+<div class='align'><img src='tutorial_material_html39x.png' alt='pict' /><a id='x1-7013r29'></a><a id='x1-7014r30'></a><a id='x1-7015r31'></a></div>
+<!-- l. 274 --><p class='noindent'>Hence, function <a href='#x1-7013r29'>(29)</a> with <a href='#x1-7014r30'>(30)</a><a href='#x1-7015r31'> and (31)</a> corresponds to
+</p>
+<div class='align'><img src='tutorial_material_html40x.png' alt='pict' /></div>
+<!-- l. 278 --><p class='noindent'>Now, we have two possibilities how to calculate the RKHS norm. First, the RKHS-norm of <span class='lmmi-12'>f</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span></sub> is
+calculated using <a href='#x1-7009r26'>(26)</a> by
+</p>
+<div class='align'><img src='tutorial_material_html41x.png' alt='pict' /></div>
+<!-- l. 290 --><p class='noindent'>with <span class='lmmi-12'>X </span><span class='rm-lmr-12'>= [</span><span class='lmmib-10x-x-120'>x</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='rm-lmr-8'>1</span><span class='lmsy8-'>}</span></sup><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>x</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='rm-lmr-8'>2</span><span class='lmsy8-'>}</span></sup><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>x</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='rm-lmr-8'>3</span><span class='lmsy8-'>}</span></sup><span class='rm-lmr-12'>]</span>. Alternatively, we can use <a href='#x1-7010r27'>(27)</a> that results in <span class='lmsy-10x-x-120'>∥</span><span class='lmmi-12'>f</span><sub>
+<span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span></sub><span class='lmsy-10x-x-120'>∥</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span></sub> <span class='rm-lmr-12'>= </span><span class='lmsy-10x-x-120'>∥</span><span class='lmmib-10x-x-120'>c</span><span class='lmsy-10x-x-120'>∥</span>,
+where <span class='lmmib-10x-x-120'>c</span> is defined by <a href='#x1-7008r25'>(25)</a>. Thus, the norm is computed as
+                                                                                         
+                                                                                         
+</p>
+<div class='align'><img src='tutorial_material_html42x.png' alt='pict' /></div>
+</div>
+<!-- l. 294 --><p class='noindent'>
+</p><!-- l. 294 --><p class='noindent'></p>
+   </div>
+<!-- l. 295 --><p class='indent'>
+                                                                                         
+                                                                                         
+</p>
+<div class='mdframed' id='mdframed-7'>
+<div class='newtheorem'>
+<!-- l. 296 --><p class='noindent'><span class='head'>
+<a id='x1-7016r5'></a>
+<span class='ec-lmbx-12'>Example 5.</span>  </span>In this example, we visualize the meaning of the RKHS norm. <a href='#x1-7017r3'>Figure 3</a> shows
+different quadratic functions with the same RKHS norm (top left and top right), a smaller RKHS
+norm (bottom left) and a larger RKHS norm (bottom right). An identical norm indicates a similar
+variation of the functions, whereas a higher norm leads to a more varying function.
+</p>
+<div class='center'>
+<!-- l. 298 --><p class='noindent'>
+</p><!-- l. 299 --><p class='noindent'> <img src='tikzextern/section2_rkhs_example-.png' alt='PIC' id="responsive-image"/>  <a id='x1-7017r3'></a>
+<a id='x1-7018'></a>
+</p>
+<figcaption class='caption'><span class='id'>Figure 3: </span><span class='content'>Functions with different RKHS-norms: <span class='lmsy-10x-x-120'>∥</span><span class='lmmi-12'>f</span><sub><span class='rm-lmr-8'>1</span></sub><span class='lmsy-10x-x-120'>∥</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span></sub><sup><span class='rm-lmr-8'>2</span></sup> <span class='rm-lmr-12'>= </span><span class='lmsy-10x-x-120'>∥</span><span class='lmmi-12'>f</span><sub>
+<span class='rm-lmr-8'>2</span></sub><span class='lmsy-10x-x-120'>∥</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span></sub><sup><span class='rm-lmr-8'>2</span></sup> <span class='rm-lmr-12'>= 4</span><span class='lmsy-10x-x-120'>∥</span><span class='lmmi-12'>f</span><sub>
+<span class='rm-lmr-8'>3</span></sub><span class='lmsy-10x-x-120'>∥</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span></sub><sup><span class='rm-lmr-8'>2</span></sup> <span class='rm-lmr-12'>=</span> <img src='tutorial_material_html44x.png' align='middle' alt='1
+2' class='frac' /><span class='lmsy-10x-x-120'>∥</span><span class='lmmi-12'>f</span><sub><span class='rm-lmr-8'>4</span></sub><span class='lmsy-10x-x-120'>∥</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span></sub><sup><span class='rm-lmr-8'>2</span></sup>. </span></figcaption><!-- tex4ht:label?: x1-7017r2  -->
+</div>
+</div>
+<!-- l. 304 --><p class='noindent'>
+</p><!-- l. 304 --><p class='noindent'></p>
+   </div>
+<!-- l. 305 --><p class='indent'>   In summary, we investigate the unique relation between the kernel and its RKHS. The
+reproducing property allows us to write the inner-product as a tractable function which implicitly
+defines a higher (or even infinite) feature dimensional space. The RKHS-norm of a function is a
+Lipschitz-like indicator based on the metric defined by the kernel. This view of the RKHS is
+related to the kernel trick in machine learning. In the next section, the RKHS-norm is exploited to
+determine the error between the prediction of GPR and the actual data-generating
+function.
+</p>
+   <h4 class='subsectionHead'><span class='titlemark'>2.5   </span> <a id='x1-80002.5'></a>Model Error</h4>
+<!-- l. 308 --><p class='noindent'>One of the most interesting properties of GPR is the uncertainty description encoded in the
+predicted variance. This uncertainty is beneficial to quantify the error between the actual
+underlying data generating process and the GPR. In this section, we assume that there is an
+unknown function <span class='lmmi-12'>f</span><sub>uk</sub><span class='rm-lmr-12'>: </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>z</span></sub></sup> <span class='lmsy-10x-x-120'>→ </span><span class='msbm-10x-x-120'>ℝ </span>that generates the training data. In detail, the data
+set <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --> </span><span class='rm-lmr-12'>= </span><span class='lmsy-10x-x-120'>{</span><span class='lmmi-12'>X</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>Y </span><span class='lmsy-10x-x-120'>} </span>consists of
+</p>
+                                                                                         
+                                                                                         
+   <div class='align'><img src='tutorial_material_html45x.png' alt='pict' /><a id='x1-8001r32'></a></div>
+<!-- l. 313 --><p class='indent'>   where the data is generated by
+</p>
+   <div class='align'><img src='tutorial_material_html46x.png' alt='pict' /><a id='x1-8002r33'></a></div>
+<!-- l. 317 --><p class='indent'>   for all <span class='lmmi-12'>i </span><span class='rm-lmr-12'>= </span><span class='lmsy-10x-x-120'>{</span><span class='rm-lmr-12'>1, </span><span class='lmmi-12'>…</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>n</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub><span class='lmsy-10x-x-120'>}</span>. Without any assumptions on <span class='lmmi-12'>f</span><sub>uk</sub> it is obviously not possible to quantify
+the model error. Loosely speaking, the prior distribution of the GPR with kernel <span class='lmmi-12'>k </span>must be
+suitable to learn the unknown function. More technically, <span class='lmmi-12'>f</span><sub>uk</sub> must be an element
+of the RKHS spanned by the kernel as described in <a href='#x1-7006r24'>(24)</a>. This leads to the following
+assumption.
+</p>
+   <div class='newtheorem'>
+<!-- l. 318 --><p class='noindent'><span class='head'>
+<a id='x1-8003r1'></a>
+<span class='ec-lmbx-12'>Assumption 1.</span>   </span><span class='ec-lmri-12'>The function </span><span class='lmmi-12'>f</span><sub><span class='ec-lmri-12'>uk</span></sub> <span class='ec-lmri-12'>has a finite RKHS norm with respect to the kernel </span><span class='lmmi-12'>k</span><span class='ec-lmri-12'>,
+</span><span class='ec-lmri-12'>i.e., </span><span class='lmsy-10x-x-120'>∥</span><span class='lmmi-12'>f</span><sub><span class='ec-lmri-12'>uk</span></sub><span class='lmsy-10x-x-120'>∥</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span></sub> <span class='lmmi-12'>&lt; </span><span class='lmsy-10x-x-120'>∞</span><span class='ec-lmri-12'>, where </span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --> </span><span class='ec-lmri-12'>is the RKHS spanned by </span><span class='lmmi-12'>k</span><span class='ec-lmri-12'>.</span>
+</p>
+   </div>
+<!-- l. 320 --><p class='indent'>
+This sounds paradoxical as <span class='lmmi-12'>f</span><sub>uk</sub> is assumed to be unknown. However, there exist kernels that can
+approximate any continuous function arbitrarily exact. Thus, for any continuous function, an
+arbitrarily close function is element of the RKHS of an universal kernel. For more details, we refer
+to <a href='#x1-70002.4'>Section 2.4</a>. More infomation about the model error of misspecified Gaussian Process model
+can be found in [<a href='#cite.0@beckers:cdc2018'>BUH18</a>]<br class='newline' />We classify the error quantification in three different approaches: i) the robust approach,
+ii) the scenario approach, and iii) the information-theoretical approach. The different
+techniques are presented in the following and visualized in <a href='#x1-11006r4'>Fig. 4</a>. For the remainder of this
+section, we assume that a GPR is trained with the data set <a href='#x1-8001r32'>(32)</a> and <a href='#x1-8003r1'>Assumption 1</a>
+holds.
+</p>
+   <h5 class='subsubsectionHead'><span class='titlemark'>2.5.1   </span> <a id='x1-90002.5.1'></a>Robust approach</h5>
+                                                                                         
+                                                                                         
+<!-- l. 324 --><p class='noindent'>The robust approach exploits the fact that the prediction of the GPR is Gaussian distributed.
+Thus, for any <span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>∗</span></sup> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>z</span></sub></sup>, the model error is bounded by
+</p>
+   <div class='align'><img src='tutorial_material_html47x.png' alt='pict' /><a id='x1-9001r34'></a></div>
+<!-- l. 328 --><p class='indent'>   with high probability where <span class='lmmi-12'>c </span><span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sub><span class='lmmi-8'>&gt;</span><span class='rm-lmr-8'>0</span></sub> adjusts the probability. However, for multiple test
+points <span class='lmmib-10x-x-120'>z</span><sub><span class='rm-lmr-8'>1</span></sub><sup><span class='lmsy8-'>∗</span></sup><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><sub>
+<span class='rm-lmr-8'>2</span></sub><sup><span class='lmsy8-'>∗</span></sup><span class='rm-lmr-12'>, </span><span class='lmmi-12'>… </span><span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>z</span></sub></sup>, this approach neglects any correlation between <span class='lmmi-12'>f</span><sub>GP</sub><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><sub>
+<span class='rm-lmr-8'>1</span></sub><sup><span class='lmsy8-'>∗</span></sup><span class='rm-lmr-12'>), </span><span class='lmmi-12'>f</span><sub>GP</sub><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><sub>
+<span class='rm-lmr-8'>2</span></sub><sup><span class='lmsy8-'>∗</span></sup><span class='rm-lmr-12'>), </span><span class='lmmi-12'>…</span>.
+<a href='#x1-11006r4'>Figure 4</a> shows how for a given <span class='lmmib-10x-x-120'>z</span><sub><span class='rm-lmr-8'>1</span></sub><sup><span class='lmsy8-'>∗</span></sup> and <span class='lmmib-10x-x-120'>z</span><sub>
+<span class='rm-lmr-8'>2</span></sub><sup><span class='lmsy8-'>∗</span></sup>, the variance is exploited as upper bound. Thus,
+any prediction is handled independently, which leads to a very conservative bound,
+see [<a href='#cite.0@umlauft:ecc2018'>UBH18</a>].
+</p>
+   <h5 class='subsubsectionHead'><span class='titlemark'>2.5.2   </span> <a id='x1-100002.5.2'></a>Scenario approach</h5>
+<!-- l. 330 --><p class='noindent'>Instead of using the mean and the variance as in the robust approach, the scenario approach deals
+with the samples of the GPR directly. In contrast to the other methods, there is no direct model
+error quantification but rather a sample based quantification. The idea is to draw a large
+number <span class='lmmi-12'>n</span><sub>scen</sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℕ </span>of sample functions <span class='lmmi-12'>f</span><sub>GP</sub><sup><span class='rm-lmr-8'>1</span></sup><span class='rm-lmr-12'>, </span><span class='lmmi-12'>f</span><sub>GP</sub><sup><span class='rm-lmr-8'>2</span></sup><span class='rm-lmr-12'>, </span><span class='lmmi-12'>…</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>f</span><sub>GP</sub><sup><span class='lmmi-8'>n</span><sub>scen</sub></sup> over <span class='lmmi-12'>n</span><sub>
+<span class='lmmi-8'>s</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℕ </span>sampling points.
+The sampling is performed by drawing multiple instances from <span class='lmmi-12'>f</span><sub>GP</sub> given by the multivariate
+Gaussian distribution
+</p>
+   <div class='align'><img src='tutorial_material_html48x.png' alt='pict' /><a id='x1-10001r35'></a></div>
+<!-- l. 334 --><p class='indent'>   where <span class='lmmi-12'>X</span><sup><span class='lmsy8-'>∗</span></sup> <span class='rm-lmr-12'>= [</span><span class='lmmib-10x-x-120'>z</span><sub>
+<span class='rm-lmr-8'>1</span></sub><sup><span class='lmsy8-'>∗</span></sup><span class='rm-lmr-12'>,</span> <img src='tutorial_material_html49x.png' alt='⋅⋅⋅' class='@cdots' /> <span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><sub>
+<span class='lmmi-8'>n</span><sub><span class='lmmi-6'>s</span></sub></sub><sup><span class='lmsy8-'>∗</span></sup><span class='rm-lmr-12'>] </span>contains the sampling points. Each sample can then be used in the
+application instead of the unknown function. For a large number of samples it is assumed that the
+unknown function is close to one of these samples. However, the crux of this approach is to
+determine, for a given model error <span class='lmmi-12'>c </span><span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sub><span class='lmmi-8'>&gt;</span><span class='rm-lmr-8'>0</span></sub>, the required number of samples <span class='lmmi-12'>n</span><sub>scen</sub> and
+probability <span class='lmmi-12'>δ</span><sub><span class='lmmi-8'>scen</span></sub> <span class='lmmi-12'>&gt; </span><span class='rm-lmr-12'>0 </span>such that
+</p>
+                                                                                         
+                                                                                         
+   <div class='align'><img src='tutorial_material_html50x.png' alt='pict' /><a id='x1-10002r36'></a></div>
+<!-- l. 338 --><p class='indent'>   for all <span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>∗</span></sup> <span class='lmsy-10x-x-120'>∈ </span><span class='lmmi-12'>Z</span>. In <a href='#x1-11006r4'>Fig. 4</a>, five different samples of a GP model are drawn as example.
+</p>
+   <h5 class='subsubsectionHead'><span class='titlemark'>2.5.3   </span> <a id='x1-110002.5.3'></a>Information-theoretical approach</h5>
+<!-- l. 340 --><p class='noindent'>Alternatively, the work in [<a href='#cite.0@srinivas2012information'>Sri+12</a>] derives an upper bound for samples of the GPR
+on a compact set with a specific probability. In contrast to the robust approach, the
+correlation between the function values are considered. We restate here the theorem
+of [<a href='#cite.0@srinivas2012information'>Sri+12</a>].</p>
+<div class='mdframed' id='mdframed-8'>
+<div class='newtheorem'>
+<!-- l. 341 --><p class='noindent'><span class='head'>
+<a id='x1-11001r3'></a>
+<span class='ec-lmbx-12'>Theorem 3 </span>([<a href='#cite.0@srinivas2012information'>Sri+12</a>])<span class='ec-lmbx-12'>.</span>   </span><span class='ec-lmri-12'>Given </span><a href='#x1-8003r1'><span class='ec-lmri-12'>Assumption 1</span></a><span class='ec-lmri-12'>, the model error </span><span class='rm-lmr-12'>Δ </span><span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span>
+</p>
+<div class='align'><img src='tutorial_material_html51x.png' alt='pict' /><a id='x1-11002r37'></a></div>
+<!-- l. 346 --><p class='noindent'><span class='ec-lmri-12'>is bounded for all </span><span class='lmmib-10x-x-120'>z </span><span class='ec-lmri-12'>on a compact set </span><span class='rm-lmr-12'>Ω </span><span class='lmsy-10x-x-120'>⊂ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>z</span></sub></sup> <span class='ec-lmri-12'>with a probability of at least </span><span class='lmmi-12'>δ </span><span class='lmsy-10x-x-120'>∈ </span><span class='rm-lmr-12'>(0, 1)
+</span><span class='ec-lmri-12'>by</span>
+</p>
+<div class='align'><img src='tutorial_material_html52x.png' alt='pict' /><a id='x1-11003r38'></a></div>
+<!-- l. 350 --><p class='noindent'><span class='ec-lmri-12'>where </span><span class='lmmi-12'>β </span><span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ </span><span class='ec-lmri-12'>is defined as</span>
+</p>
+<div class='align'><img src='tutorial_material_html53x.png' alt='pict' /><a id='x1-11004r39'></a></div>
+<!-- l. 354 --><p class='noindent'><span class='ec-lmri-12'>The variable </span><span class='lmmi-12'>γ</span><sub><span class='ec-lmri-12'>max</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ </span><span class='ec-lmri-12'>is the maximum of the information gain</span>
+                                                                                         
+                                                                                         
+</p>
+<div class='align'><img src='tutorial_material_html54x.png' alt='pict' /><a id='x1-11005r40'></a></div>
+<!-- l. 358 --><p class='noindent'><span class='ec-lmri-12'>with Gram matrix </span><span class='lmmi-12'>K</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup><span class='rm-lmr-12'>) </span><span class='ec-lmri-12'>and the input elements </span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup> <span class='lmsy-10x-x-120'>∈{</span><span class='lmmib-10x-x-120'>x</span><sub><span class='ec-lmri-12'>dat</span></sub><sup><span class='lmsy8-'>{</span><span class='rm-lmr-8'>1</span><span class='lmsy8-'>}</span></sup><span class='rm-lmr-12'>, </span><span class='lmmi-12'>…</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>x</span><sub><span class='ec-lmri-12'>dat</span></sub><sup><span class='lmsy8-'>{</span><span class='lmmi-8'>n</span><sub><span class='lmsy6-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub><span class='rm-lmr-8'>+1</span><span class='lmsy8-'>}</span></sup><span class='lmsy-10x-x-120'>}</span><span class='ec-lmri-12'>.</span>
+</p>
+</div>
+<!-- l. 359 --><p class='noindent'>
+</p><!-- l. 359 --><p class='noindent'></p>
+   </div>
+<!-- l. 360 --><p class='indent'>   To compute this bound, the RKHS norm of <span class='lmmi-12'>f</span><sub>uk</sub> must be known. That is in application usually
+not the case. However, often the norm can be upper bounded and thus, the bound in <a href='#x1-11001r3'>Theorem 3</a>
+can be upper bounded. For this purpose, the relation of the RKHS norm to the Lipschitz constant
+given by <a href='#x1-7011r28'>(28)</a> is beneficial as the Lipschitz constant is more likely to be known. In general, the
+computation of the information gain is a non-convex optimization problem. However, the
+information capacity <span class='lmmi-12'>γ</span><sub>max</sub> has a sub-linear dependency on the number of training points for
+many commonly used kernel functions [<a href='#cite.0@srinivas2012information'>Sri+12</a>]. Therefore, even though <span class='lmmi-12'>β </span>is increasing with the
+number of training data, it is possible to learn the true function <span class='lmmi-12'>f</span><sub>uk</sub> arbitrarily exactly [<a href='#cite.0@Berkenkamp2016ROA'>Ber+16</a>].
+In contrast to the other approaches, <a href='#x1-11001r3'>Theorem 3</a> allows to bound the error for any test point
+in a compact set. In [<a href='#cite.0@beckers2019automatica'>BKH19</a>], we exploit this approach in GP model based control
+tasks. The right illustration of <a href='#x1-11006r4'>Fig. 4</a> visualizes the information-theoretical bound.
+</p><figure class='figure'> 
+
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+<!-- l. 362 --><p class='noindent'> <img src='tikzextern/section2_model_error-.png' alt='PIC' id="responsive-image"/>  <a id='x1-11006r4'></a>
+<a id='x1-11007'></a>
+</p>
+<figcaption class='caption'><span class='id'>Figure 4: </span><span class='content'>Different approaches to quantify the model error: Robust approach (left), scenario
+approach (middle), information-theoretical approach (right).
+</span></figcaption><!-- tex4ht:label?: x1-11006r2  -->
+                                                                                         
+                                                                                         
+   </figure>
+   <h3 class='sectionHead'><span class='titlemark'>3   </span> <a id='x1-120003'></a>Model Selection</h3>
+<!-- l. 370 --><p class='noindent'><a href='#x1-4007r9'>Equation (9)</a> clearly shows the immense impact of the kernel on the posterior mean and variance.
+However, this is not surprising as the kernel is an essential part of the prior model. For practical
+applications that leads to the question how to choose the kernel. Additionally, most kernels depend
+on a set of hyperparameters that must be defined. Thus in order to turn GPR into a powerful
+practical tool it is essential to develop methods that address the model selection problem. We see
+the model selection as the determination of the kernel and its hyperparameters. We only focus on
+kernels that are defined on <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span --> ⊆ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>z</span></sub></sup>. In the next two subsections, we present different
+kernels and explain the role of the hyperparameters and their selection, mainly based
+on [<a href='#cite.0@rasmussen2006gaussian'>Ras06</a>].
+</p>
+   <div class='newtheorem'>
+<!-- l. 371 --><p class='noindent'><span class='head'>
+<a id='x1-12001r3'></a>
+<span class='ec-lmbx-12'>Remark 3.</span>  </span><span class='ec-lmri-12'>The selection of the kernel functions seems to be similar to the model selection
+</span><span class='ec-lmri-12'>for parametric models. However, there are two major differences: i) the selection is fully
+</span><span class='ec-lmri-12'>covered by the Bayesian methodology and ii) many kernels allow to model a wide range of
+</span><span class='ec-lmri-12'>different functions whereas parametric models a typically limited to very specific types of
+</span><span class='ec-lmri-12'>functions.</span>
+</p>
+   </div>
+<!-- l. 373 --><p class='indent'>
+</p>
+   <h4 class='subsectionHead'><span class='titlemark'>3.1   </span> <a id='x1-130003.1'></a>Kernel Functions</h4>
+<!-- l. 375 --><p class='noindent'>The value of the kernel function <span class='lmmi-12'>k</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup><span class='rm-lmr-12'>) </span>is an indicator of the interaction of two states <span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup><span class='rm-lmr-12'>)</span>.
+Thus, an essential part of GPR is the selection of the kernel function and the estimation of its free
+parameters <span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>1</span></sub><span class='rm-lmr-12'>, </span><span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>2</span></sub><span class='rm-lmr-12'>, </span><span class='lmmi-12'>…</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>φ</span><sub><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>φ</span></sub></sub>, called hyperparameters. The number <span class='lmmi-12'>n</span><sub><span class='lmmi-8'>φ</span></sub> of hyperparameters depends on
+the kernel function. The choice of the kernel function and the determination of the
+corresponding hyperparameters can be seen as degrees of freedom of the regression. First of
+all, we start with the general properties of a function to be qualified as a kernel for
+GPR. A necessary and sufficient condition for the function <span class='lmmi-12'>k</span><span class='rm-lmr-12'>: </span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span --> ×<!-- span 
+class="htf-calligraphy" -->Z<!-- /span --> → </span><span class='msbm-10x-x-120'>ℝ </span>to be a valid
+kernel is that the Gram matrix, see <a href='#x1-4004r6'>(6)</a>, is positive semidefinite for all possible input
+values [<a href='#cite.0@shawe2004kernel'>SC04</a>].
+</p>
+   <div class='newtheorem'>
+<!-- l. 376 --><p class='noindent'><span class='head'>
+<a id='x1-13001r4'></a>
+                                                                                         
+                                                                                         
+<span class='ec-lmbx-12'>Remark 4.</span>  </span><span class='ec-lmri-12'>As shown in </span><a href='#x1-70002.4'><span class='ec-lmri-12'>Section 2.4</span></a><span class='ec-lmri-12'>, the kernel function must be </span>positive definite <span class='ec-lmri-12'>to span an
+</span><span class='ec-lmri-12'>unique RKHS. That seems to be contradictory to the required </span>positive semi-definiteness <span class='ec-lmri-12'>of the
+</span><span class='ec-lmri-12'>Gram matrix. The solution is the definition of positive definite kernels as it is equivalent to a
+</span><span class='ec-lmri-12'>positive semi-definite Gram matrix. In detail, a symmetric function </span><span class='lmmi-12'>k</span><span class='rm-lmr-12'>: </span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span -->×<!-- span 
+class="htf-calligraphy" -->Z<!-- /span --> → </span><span class='msbm-10x-x-120'>ℝ </span><span class='ec-lmri-12'>is a </span>positive
+definite <span class='ec-lmri-12'>kernel on </span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span --> </span><span class='ec-lmri-12'>if</span>
+</p>
+   <div class='align'><img src='tutorial_material_html55x.png' alt='pict' /><a id='x1-13002r41'></a></div>
+<!-- l. 381 --><p class='indent'>   <span class='ec-lmri-12'>holds for any </span><span class='lmmi-12'>n</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℕ</span><span class='ec-lmri-12'>, </span><span class='lmmib-10x-x-120'>x</span><sub><span class='ec-lmri-12'>dat</span></sub><sup><span class='lmsy8-'>{</span><span class='rm-lmr-8'>1</span><span class='lmsy8-'>}</span></sup><span class='rm-lmr-12'>, </span><span class='lmmi-12'>…</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>x</span><sub><span class='ec-lmri-12'>dat</span></sub><sup><span class='lmsy8-'>{</span><span class='lmmi-8'>n</span><sub><span class='lmsy6-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub><span class='lmsy8-'>}</span></sup> <span class='lmsy-10x-x-120'>∈<!-- span 
+class="htf-calligraphy" -->Z<!-- /span --> </span><span class='ec-lmri-12'>and </span><span class='lmmi-12'>c</span><sub>
+<span class='rm-lmr-8'>1</span></sub><span class='rm-lmr-12'>, </span><span class='lmmi-12'>…</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>c</span><sub><span class='lmmi-8'>n</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><span class='ec-lmri-12'>. Thus, there exists a </span>positive
+semi-definite <span class='ec-lmri-12'>matrix </span><span class='lmmi-12'>A</span><sub><span class='lmmi-8'>G</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmsy6-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub><span class='lmsy8-'>×</span><span class='lmmi-8'>n</span><sub><span class='lmsy6-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub></sup> <span class='ec-lmri-12'>such that</span>
+</p>
+   <div class='align'><img src='tutorial_material_html56x.png' alt='pict' /><a id='x1-13003r42'></a></div>
+<!-- l. 385 --><p class='indent'>   <span class='ec-lmri-12'>holds for any </span><span class='lmmi-12'>n</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℕ </span><span class='ec-lmri-12'>and </span><span class='lmmib-10x-x-120'>z </span><span class='lmsy-10x-x-120'>∈<!-- span 
+class="htf-calligraphy" -->Z<!-- /span --></span><span class='ec-lmri-12'>.</span>
+</p>
+   </div>
+<!-- l. 386 --><p class='indent'>
+The set of functions <span class='lmmi-12'>k </span>which fulfill this condition is denoted with <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->K<!-- /span --></span>. Kernel functions can be
+separated into two classes, the <span class='ec-lmri-12'>stationary </span>and <span class='ec-lmri-12'>non-stationary </span>kernels. A stationary kernel is a
+function of the distance <span class='lmmib-10x-x-120'>z </span><span class='lmsy-10x-x-120'>−</span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup>. Thus, it is invariant to translations in the input space. In contrast,
+non-stationary kernels depend directly on <span class='lmmib-10x-x-120'>z</span>,<span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup> and are often functions of a dot product <span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>⊤</span></sup><span class='lmmib-10x-x-120'>z</span>. In
+the following, we list some common kernel functions with their basic properties. Even though the
+number of presented kernels is limited, new kernels can be constructed easily as <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->K<!-- /span --></span>
+is closed under specific operations such as addition and scalar multiplication. At the
+end, we summarize the equation of each kernel in <a href='#x1-20006r1'>Table 1</a> and provide a comparative
+example.
+</p>
+   <h5 class='subsubsectionHead'><span class='titlemark'>3.1.1   </span> <a id='x1-140003.1.1'></a>Constant Kernel</h5>
+<!-- l. 389 --><p class='noindent'>The equation for the constant kernel is given by
+</p>
+                                                                                         
+                                                                                         
+   <div class='align'><img src='tutorial_material_html57x.png' alt='pict' /><a id='x1-14001r43'></a></div>
+<!-- l. 393 --><p class='indent'>   This kernel is mostly used in addition to other kernel functions. It depends one a single
+hyperparameter <span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>1</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sub><span class='lmsy8-'>≥</span><span class='rm-lmr-8'>0</span></sub>.
+</p>
+   <h5 class='subsubsectionHead'><span class='titlemark'>3.1.2   </span> <a id='x1-150003.1.2'></a>Linear Kernel</h5>
+<!-- l. 395 --><p class='noindent'>The equation for the linear kernel is given by
+</p>
+   <div class='align'><img src='tutorial_material_html58x.png' alt='pict' /><a id='x1-15001r44'></a></div>
+<!-- l. 399 --><p class='indent'>   The linear kernel is a dot-product kernel and thus, non-stationary. The kernel can be obtained
+from Bayesian linear regression as shown in <a href='#x1-60002.3'>Section 2.3</a>. The linear kernel is often used in
+combination with the constant kernel to include a bias.
+</p>
+   <h5 class='subsubsectionHead'><span class='titlemark'>3.1.3   </span> <a id='x1-160003.1.3'></a>Polynomial Kernel</h5>
+<!-- l. 401 --><p class='noindent'>The equation for the polynomial kernel is given by
+</p>
+   <div class='align'><img src='tutorial_material_html59x.png' alt='pict' /><a id='x1-16001r45'></a></div>
+<!-- l. 405 --><p class='indent'>   The polynomial kernel has an additional parameter <span class='lmmi-12'>p </span><span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℕ</span>, that determines the degree of the
+polynomial. Since a dot product is contained, the kernel is also non-stationary. The prior variance
+grows rapidly for <span class='lmsy-10x-x-120'>∥</span><span class='lmmib-10x-x-120'>z</span><span class='lmsy-10x-x-120'>∥ </span><span class='lmmi-12'>&gt; </span><span class='rm-lmr-12'>1 </span>such that the usage for some regression problems is limited. It depends
+on a single hyperparameter <span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>1</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sub><span class='lmsy8-'>≥</span><span class='rm-lmr-8'>0</span></sub>.
+</p>
+   <h5 class='subsubsectionHead'><span class='titlemark'>3.1.4   </span> <a id='x1-170003.1.4'></a>Matérn Kernel</h5>
+<!-- l. 407 --><p class='noindent'>The equation for the Matérn kernel is given by
+</p>
+                                                                                         
+                                                                                         
+   <div class='align'><img src='tutorial_material_html60x.png' alt='pict' /><a id='x1-17001r46'></a></div>
+<!-- l. 411 --><p class='indent'>   with <span class='accentcheck'><span class='lmmi-12'>p</span> </span><span class='rm-lmr-12'>= </span><span class='lmmi-12'>p </span><span class='rm-lmr-12'>+</span> <img src='tutorial_material_html61x.png' align='middle' alt='1
+2' class='frac' /><span class='rm-lmr-12'>, </span><span class='lmmi-12'>p </span><span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℕ</span>. The Matérn kernel is a very powerful kernel and presented here with
+the most common parameterization for <span class='accentcheck'><span class='lmmi-12'>p</span></span>. Functions drawn from a GP model with Matérn
+kernel are <span class='lmmi-12'>p</span>-times differentiable. The more general equation of this stationary kernel
+can be found in [<a href='#cite.0@bishop2006pattern'>Bis06</a>]. This kernel is an <span class='ec-lmri-12'>universal kernel </span>which is explained in the
+following.</p>
+<div class='mdframed' id='mdframed-9'>
+<div class='newtheorem'>
+<!-- l. 412 --><p class='noindent'><span class='head'>
+<a id='x1-17002r1'></a>
+<span class='ec-lmbx-12'>Lemma 1 </span>([<a href='#cite.0@steinwart2008support'>SC08</a>, Lemma 4.55])<span class='ec-lmbx-12'>.</span>   </span><span class='ec-lmri-12'>Consider the RKHS </span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span><span class='rm-lmr-12'>(</span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span --></span><sub><span class='lmmi-8'>c</span></sub><span class='rm-lmr-12'>) </span><span class='ec-lmri-12'>of an universal kernel on
+</span><span class='ec-lmri-12'>any prescribed compact subset </span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span --></span><sub><span class='lmmi-8'>c</span></sub> <span class='lmsy-10x-x-120'>∈<!-- span 
+class="htf-calligraphy" -->Z<!-- /span --></span><span class='ec-lmri-12'>. Given any positive number </span><span class='lmmi-12'>𝜀 </span><span class='ec-lmri-12'>and any function </span><span class='lmmi-12'>f</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->C<!-- /span --></span></sub> <span class='lmsy-10x-x-120'>∈
+</span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->C<!-- /span --></span><sup><span class='rm-lmr-8'>1</span></sup><span class='rm-lmr-12'>(</span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span --></span><sub>
+<span class='lmmi-8'>C</span></sub><span class='rm-lmr-12'>)</span><span class='ec-lmri-12'>, there is a function </span><span class='lmmi-12'>f</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span></sub> <span class='lmsy-10x-x-120'>∈<!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span><span class='rm-lmr-12'>(</span><span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span --></span><sub><span class='lmmi-8'>c</span></sub><span class='rm-lmr-12'>) </span><span class='ec-lmri-12'>such that </span><span class='lmsy-10x-x-120'>∥</span><span class='lmmi-12'>f</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->C<!-- /span --></span></sub> <span class='lmsy-10x-x-120'>− </span><span class='lmmi-12'>f</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->H<!-- /span --></span></sub><span class='lmsy-10x-x-120'>∥</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->Z<!-- /span --></span><sub><span class='lmmi-6'>c</span></sub></sub> <span class='lmsy-10x-x-120'>≤ </span><span class='lmmi-12'>𝜀</span><span class='ec-lmri-12'>.</span>
+</p>
+</div>
+<!-- l. 414 --><p class='noindent'>
+</p><!-- l. 414 --><p class='noindent'></p>
+   </div>
+<!-- l. 415 --><p class='indent'>   Intuitively speaking, a GPR with an universal kernel can approximate any continuous function
+arbitrarily exact on a compact set. For <span class='lmmi-12'>p </span><span class='lmsy-10x-x-120'>→∞</span>, it results in the squared exponential kernel. The
+two hyperparameters are <span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>1</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sub><span class='lmsy8-'>≥</span><span class='rm-lmr-8'>0</span></sub> and <span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>2</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sub><span class='lmmi-8'>&gt;</span><span class='rm-lmr-8'>0</span></sub>.
+</p>
+   <h5 class='subsubsectionHead'><span class='titlemark'>3.1.5   </span> <a id='x1-180003.1.5'></a>Squared Exponential Kernel</h5>
+<!-- l. 417 --><p class='noindent'>The equation for the squared exponential kernel is given by
+</p>
+   <div class='align'><img src='tutorial_material_html62x.png' alt='pict' /><a id='x1-18001r47'></a></div>
+<!-- l. 421 --><p class='indent'>   Probably the most widely used kernel function for GPR is the squared exponential kernel,
+see [<a href='#cite.0@rasmussen2006gaussian'>Ras06</a>]. The hyperparameter <span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>1</span></sub> describes the signal variance which determines the average
+distance of the data-generating function from its mean. The lengthscale <span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>2</span></sub> defines how far it is
+needed to move along a particular axis in input space for the function values to become
+uncorrelated. Formally, the lengthscale determines the number of expected upcrossings of the level
+zero in a unit interval by a zero-mean GP. The squared exponential kernel is infinitely
+                                                                                         
+                                                                                         
+differentiable, which means that the GPR exhibits a smooth behavior. As limit of the Matérn
+kernel, it is also an universal kernel, see [<a href='#cite.0@micchelli2006universal'>MXZ06</a>].</p>
+<div class='mdframed' id='mdframed-10'>
+<div class='newtheorem'>
+<!-- l. 422 --><p class='noindent'><span class='head'>
+<a id='x1-18002r6'></a>
+<span class='ec-lmbx-12'>Example 6.</span>  </span><a href='#x1-18003r5'>Figure 5</a> shows the power for regression of universal kernel functions. In this
+example, a GPR with squared exponential kernel is used for different training data sets. The
+hyperparameter are optimized individually for each training data set by means of the likelihood,
+see <a href='#x1-210003.2'>Section 3.2</a>. Note that all presented regressions are based on the <span class='ec-lmbx-12'>same </span>GP model, i.e. the
+same kernel function, but with different data sets. That highlights again the superior flexibility of
+GPR. </p>
+<div class='center'>
+<!-- l. 424 --><p class='noindent'>
+</p><!-- l. 425 --><p class='noindent'> <img src='tikzextern/section2_flex_reg-.png' alt='PIC' id="responsive-image"/>  <a id='x1-18003r5'></a>
+<a id='x1-18004'></a>
+</p>
+<figcaption class='caption'><span class='id'>Figure 5: </span><span class='content'>Examples for the flexibility of the regression that all are based on the same GP
+model.                                                                                   </span></figcaption><!-- tex4ht:label?: x1-18003r3  -->
+</div>
+</div>
+<!-- l. 428 --><p class='noindent'>
+</p><!-- l. 428 --><p class='noindent'></p>
+   </div>
+   <h5 class='subsubsectionHead'><span class='titlemark'>3.1.6   </span> <a id='x1-190003.1.6'></a>Rational Quadratic Kernel</h5>
+<!-- l. 430 --><p class='noindent'>The equation for the rational quadratic kernel is given by
+</p>
+   <div class='align'><img src='tutorial_material_html63x.png' alt='pict' /><a id='x1-19001r48'></a></div>
+<!-- l. 434 --><p class='indent'>   This kernel is equivalent to summing over infinitely many squared exponential kernels with
+different lengthscales. Hence, GP priors with this kernel are expected to see functions which vary
+smoothly across many lengthscales. The parameter <span class='lmmi-12'>p </span>determines the relative weighting of
+large-scale and small-scale variations. For <span class='lmmi-12'>p </span><span class='lmsy-10x-x-120'>→∞</span>, the rational quadratic kernel is identical to the
+squared exponential kernel.
+                                                                                         
+                                                                                         
+</p>
+   <h5 class='subsubsectionHead'><span class='titlemark'>3.1.7   </span> <a id='x1-200003.1.7'></a>Squared Exponential ARD Kernel</h5>
+<!-- l. 436 --><p class='noindent'>The equation for the squared exponential ARD kernel is given by
+</p>
+   <div class='align'><img src='tutorial_material_html64x.png' alt='pict' /><a id='x1-20001r49'></a></div>
+<!-- l. 440 --><p class='indent'>   The <span class='ec-lmri-12'>automatic relevance determination </span>(ARD) extension to the squared exponential kernel
+allows for independent lenghtscales <span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>2</span></sub><span class='rm-lmr-12'>, </span><span class='lmmi-12'>…</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>1+</span><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>z</span></sub></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sub><span class='lmmi-8'>&gt;</span><span class='rm-lmr-8'>0</span></sub> for each dimension of <span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>z</span></sub></sup>. The
+individual lenghtscales are typically larger for dimensions which are irrelevant as the covariance
+will become almost independent of that input. A more detailed discussion about the advantages of
+different kernels can be found, for instance, in [<a href='#cite.0@mackay1997gaussian'>Mac97</a>] and [<a href='#cite.0@bishop2006pattern'>Bis06</a>].</p>
+<div class='mdframed' id='mdframed-11'>
+<div class='newtheorem'>
+<!-- l. 441 --><p class='noindent'><span class='head'>
+<a id='x1-20002r7'></a>
+<span class='ec-lmbx-12'>Example 7.</span>  </span>In this example, we use three GPRs with the same set of training data
+</p>
+<div class='align'><img src='tutorial_material_html65x.png' alt='pict' /><a id='x1-20003r50'></a></div>
+<!-- l. 446 --><p class='noindent'>but with different kernels, namely the squared exponential <a href='#x1-18001r47'>(47)</a>, the linear <a href='#x1-15001r44'>(44)</a>, and the
+polynomial <a href='#x1-16001r45'>(45)</a> kernel. <a href='#x1-20004r6'>Figure 6</a> shows the different shapes of the regressions with the posterior
+mean (red), the posterior variance (gray shaded) and the training points (black). Even for
+this simple data set, the flexibility of the squared exponential kernel is already visible.
+</p>
+<div class='center'>
+<!-- l. 447 --><p class='noindent'>
+</p><!-- l. 448 --><p class='noindent'> <img src='tikzextern/section2_model_selection-.png' alt='PIC' id="responsive-image"/>  <a id='x1-20004r6'></a><a id='x1-20005'></a>
+</p>
+<figcaption class='caption'><span class='id'>Figure 6:  </span><span class='content'>GPR  with  different  kernels:  squared  exponential  (left),  linear  (middle)  and
+polynomial with degree 2 (right).                                                         </span></figcaption><!-- tex4ht:label?: x1-20004r3  -->
+</div>
+</div>
+<!-- l. 453 --><p class='noindent'>
+</p><!-- l. 453 --><p class='noindent'></p>
+                                                                                         
+                                                                                         
+   </div>
+   <div class='table'>
+                                                                                         
+                                                                                         
+<!-- l. 455 --><p class='indent'>   </p><figure class='float'>
+                                                                                         
+                                                                                         
+<div class='center'>
+<!-- l. 456 --><p class='noindent'>
+</p>
+                                                                                         
+                                                                                         
+<div class='tabular'>
+ <table class='tabular' id='TBL-1'><colgroup id='TBL-1-1g'><col id='TBL-1-1' /><col id='TBL-1-2' /></colgroup><tr style='vertical-align:baseline;' id='TBL-1-1-'><td id='TBL-1-1-1' style='white-space:normal; text-align:left;' class='td11'> <!-- l. 459 --><p class='noindent'>Kernel
+  name       </p></td><td id='TBL-1-1-2' style='white-space:normal; text-align:left;' class='td11'> <!-- l. 459 --><p class='noindent'><span class='lmmi-12'>k</span><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>z</span><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>z</span><sup><span class='lmsy8-'>′</span></sup><span class='rm-lmr-12'>) =</span>                                                                                     </p></td>
+
+</tr><tr style='vertical-align:baseline;' id='TBL-1-2-'><td id='TBL-1-2-1' style='white-space:normal; text-align:left;' class='td11'> <!-- l. 461 --><p class='noindent'>Constant   </p></td><td id='TBL-1-2-2' style='white-space:normal; text-align:left;' class='td11'> <table class='equation-star'><tr><td>
+ <div class='math-display'>
+ <img src='tutorial_material_html66x.png' alt='  2
+φ 1
+  ' class='math-display' /></div>
+  </td></tr></table>
+  <!-- l. 461 --><p class='nopar'>                                                                                                                                       </p></td>
+</tr><tr style='vertical-align:baseline;' id='TBL-1-3-'><td id='TBL-1-3-1' style='white-space:normal; text-align:left;' class='td11'> <!-- l. 463 --><p class='noindent'>Linear      </p></td><td id='TBL-1-3-2' style='white-space:normal; text-align:left;' class='td11'> <table class='equation-star'><tr><td>
+ <div class='math-display'>
+ <img src='tutorial_material_html67x.png' alt=' ⊤  ′   2
+z z  + φ1
+  ' class='math-display' /></div>
+  </td></tr></table>
+  <!-- l. 463 --><p class='nopar'>                                                                                                                                       </p></td>
+</tr><tr style='vertical-align:baseline;' id='TBL-1-4-'><td id='TBL-1-4-1' style='white-space:normal; text-align:left;' class='td11'> <!-- l. 465 --><p class='noindent'>Polynomial <span class='lmmi-12'>p </span><span class='lmsy-10x-x-120'>∈
+ </span><span class='msbm-10x-x-120'>ℕ</span>             </p></td><td id='TBL-1-4-2' style='white-space:normal; text-align:left;' class='td11'> <table class='equation-star'><tr><td>
+ <div class='math-display'>
+ <img src='tutorial_material_html68x.png' alt='(  ⊤ ′    2)p
+ z  z +  φ1
+  ' class='math-display' /></div>
+  </td></tr></table>
+  <!-- l. 465 --><p class='nopar'>                                                                                                                  </p></td>
+</tr><tr style='vertical-align:baseline;' id='TBL-1-5-'><td id='TBL-1-5-1' style='white-space:normal; text-align:left;' class='td11'> <!-- l. 467 --><p class='noindent'>Matérn <span class='accentcheck'><span class='lmmi-12'>p</span> </span><span class='rm-lmr-12'>=
+  </span><span class='lmmi-12'>p       </span><span class='rm-lmr-12'>+
+  </span><span class='rm-lmr-12'>0.5, </span><span class='lmmi-12'>p   </span><span class='lmsy-10x-x-120'>∈
+ </span><span class='msbm-10x-x-120'>ℕ</span>             </p></td><td id='TBL-1-5-2' style='white-space:normal; text-align:left;' class='td11'> <!-- l. 467 --><p class='noindent'> 
+  </p>
+  <table class='equation-star'><tr><td>
+  <div class='math-display'>
+  <img src='tutorial_material_html69x.png' alt='      (   √ ---      ′ )      ∑p          ( √ ---      ′ )p−i
+φ2 exp  − --2ˇp∥z-−-z-∥-  -p!--   -(p-+-i)!-  --8ˇp∥z-−--z∥-
+ 1             φ2        (2p)!i=0i!(p − i)!       φ2
+  ' class='math-display' /></div>
+  </td></tr></table>
+  <!-- l. 467 --><p class='nopar'>                                                                                                                  </p></td>
+</tr><tr style='vertical-align:baseline;' id='TBL-1-6-'><td id='TBL-1-6-1' style='white-space:normal; text-align:left;' class='td11'> <!-- l. 470 --><p class='noindent'>Squared
+  exponential </p> </td><td id='TBL-1-6-2' style='white-space:normal; text-align:left;' class='td11'> <table class='equation-star'><tr><td>
+ <div class='math-display'>
+ <img src='tutorial_material_html70x.png' alt='      (            )
+ 2        ∥z-−-z-′∥2-
+φ1 exp  −    2φ2
+               2
+ ' class='math-display' /></div>
+ </td></tr></table>
+ <!-- l. 470 --><p class='nopar'>                                                      </p></td>
+</tr><tr style='vertical-align:baseline;' id='TBL-1-7-'><td id='TBL-1-7-1' style='white-space:normal; text-align:left;' class='td11'> <!-- l. 472 --><p class='noindent'>Rational
+  quadratic  </p></td><td id='TBL-1-7-2' style='white-space:normal; text-align:left;' class='td11'> <table class='equation-star'><tr><td>
+ <div class='math-display'>
+ <img src='tutorial_material_html71x.png' alt='  (            ′2 )−p
+φ21  1 + ∥z-−-z-∥--
+          2p φ22
+  ' class='math-display' /></div>
+  </td></tr></table>
+  <!-- l. 472 --><p class='nopar'>                                                                                                                  </p></td>
+</tr><tr style='vertical-align:baseline;' id='TBL-1-8-'><td id='TBL-1-8-1' style='white-space:normal; text-align:left;' class='td11'> <!-- l. 474 --><p class='noindent'>Squared
+  exponential
+  ARD        </p></td><td id='TBL-1-8-2' style='white-space:normal; text-align:left;' class='td11'> <table class='equation-star'><tr><td>
+ <div class='math-display'>
+ <img src='tutorial_material_html72x.png' alt='
+  ' class='math-display' /></div>
+  </td></tr></table>
+  <!-- l. 474 --><p class='nopar'>                                                                                                 </p></td>
+</tr></table>                                                                           
+                                                                                         
+</div></div>
+<a id='x1-20006r1'></a>
+<a id='x1-20007'></a>
+<figcaption class='caption'><span class='id'>Table 1: </span><span class='content'>Overview of some commonly used kernel functions.
+</span></figcaption><!-- tex4ht:label?: x1-20006r3  -->
+                                                                                         
+                                                                                         
+   </figure>
+   </div>
+   <h4 class='subsectionHead'><span class='titlemark'>3.2   </span> <a id='x1-210003.2'></a>Hyperparameter Optimization</h4>
+<!-- l. 484 --><p class='noindent'>In addition to the selection of a kernel function, values for any hyperparameter must be
+determined to perform the regression. The number of hyperparameters depends on the kernel
+function used. We concatenate all hyperparameters in a vector <span class='lmmib-10x-x-120'>φ</span> with size <span class='lmmi-12'>n</span><sub><span class='lmmi-8'>φ</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℕ</span>,
+where <span class='lmmib-10x-x-120'>φ </span><span class='lmsy-10x-x-120'>∈ </span><span class='rm-lmr-12'>Φ </span><span class='lmsy-10x-x-120'>⊆ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>φ</span></sub></sup>. The hyperparameter set <span class='rm-lmr-12'>Φ </span>is introduced to cover the different spaces of the
+individual hyperparameters as defined in the following.
+</p>
+   <div class='newtheorem'>
+<!-- l. 485 --><p class='noindent'><span class='head'>
+<a id='x1-21001r1'></a>
+<span class='ec-lmbx-12'>Definition 1.</span>  </span> The set <span class='rm-lmr-12'>Φ </span>is called a hyperparameter set for a kernel function <span class='lmmi-12'>k </span>if and only
+if the set <span class='rm-lmr-12'>Φ </span>is a domain for the hyperparameters <span class='lmmib-10x-x-120'>φ</span> of <span class='lmmi-12'>k</span>.
+</p>
+   </div>
+<!-- l. 488 --><p class='indent'>
+Often, the signal noise <span class='lmmi-12'>σ</span><sub><span class='lmmi-8'>n</span></sub><sup><span class='rm-lmr-8'>2</span></sup>, see <a href='#x1-4003r5'>(5)</a>, is also treated as hyperparameter. For a better understanding,
+we keep the signal noise separated from the hyperparameters. There exist several techniques that
+allow computing the hyperparameters and the signal noise with respect to one optimality criterion.
+From a Bayesian perspective, we want to find the vector of hyperparameters <span class='lmmib-10x-x-120'>φ</span> which are most
+likely for the output data <span class='lmmi-12'>Y </span>given the inputs <span class='lmmi-12'>X </span>and a GP model. For this purpose, one approach
+is to optimize the <span class='ec-lmri-12'>log marginal likelihood function </span>of the GP. Another idea is to split the
+training set into two disjoint sets, one which is actually used for training, and the other,
+the validation set, which is used to monitor performance. This approach is known as
+<span class='ec-lmri-12'>cross-validation</span>. In the following, these two techniques for the selection of hyperparameters are
+presented.
+</p>
+   <h5 class='subsubsectionHead'><span class='titlemark'>3.2.1   </span> <a id='x1-220003.2.1'></a>Log Marginal Likelihood Approach</h5>
+<!-- l. 491 --><p class='noindent'>A very common method for the optimization of the hyperparameters is by means of the <span class='ec-lmri-12'>negative
+</span><span class='ec-lmri-12'>log marginal likelihood function</span>, often simply named as (neg. log) likelihood function. It is <span class='ec-lmri-12'>marginal</span>
+since it is obtained through marginalization over the function <span class='lmmi-12'>f</span><sub>GP</sub>. The marginal likelihood is the
+likelihood that the output data <span class='lmmi-12'>Y </span><span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmsy6-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub></sup> fits to the input data <span class='lmmi-12'>X </span>with the hyperparameters <span class='lmmib-10x-x-120'>φ</span>. It
+is given by
+</p>
+   <div class='align'><img src='tutorial_material_html73x.png' alt='pict' /><a id='x1-22001r51'></a></div>
+<!-- l. 495 --><p class='indent'>   A detailed derivation can be found in [<a href='#cite.0@rasmussen2006gaussian'>Ras06</a>]. The three terms of the marginal likelihood
+in <a href='#x1-22001r51'>(51)</a> have the following roles: </p>
+      <ul class='itemize1'>
+      <li class='itemize'> <img src='tutorial_material_html74x.png' align='middle' alt='1
+2' class='frac' /><span class='lmmi-12'>Y</span> <sup><span class='lmsy8-'>⊤</span></sup><span class='rm-lmr-12'>(</span><span class='lmmi-12'>K </span><span class='rm-lmr-12'>+ </span><span class='lmmi-12'>σ</span><sub>
+<span class='lmmi-8'>n</span></sub><sup><span class='rm-lmr-8'>2</span></sup><span class='lmmi-12'>I</span><sub>
+<span class='lmmi-8'>n</span><sub><span class='lmsy6-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub></sub><span class='rm-lmr-12'>)</span><sup><span class='lmsy8-'>−</span><span class='rm-lmr-8'>1</span></sup><span class='lmmi-12'>Y  </span>is the only term that depends on the output data <span class='lmmi-12'>Y  </span>and
+      represents the data-fit.
+      </li>
+      <li class='itemize'> <img src='tutorial_material_html75x.png' align='middle' alt='1
+2' class='frac' /> <span class='rm-lmr-12'>log </span><span class='lmsy-10x-x-120'>|</span><span class='lmmi-12'>K </span><span class='rm-lmr-12'>+</span><span class='lmmi-12'>σ</span><sub><span class='lmmi-8'>n</span></sub><sup><span class='rm-lmr-8'>2</span></sup><span class='lmmi-12'>I</span><sub>
+<span class='lmmi-8'>n</span><sub><span class='lmsy6-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub></sub><span class='lmsy-10x-x-120'>| </span>penalizes the complexity depending on the kernel function and the
+      input data <span class='lmmi-12'>X</span>.
+      </li>
+      <li class='itemize'> <img src='tutorial_material_html76x.png' align='middle' alt='nD-
+ 2' class='frac' /> <span class='rm-lmr-12'>log </span><span class='rm-lmr-12'>2</span><span class='lmmi-12'>π </span>is a normalization constant.</li></ul>
+<div class='newtheorem'>
+<!-- l. 501 --><p class='noindent'><span class='head'>
+<a id='x1-22002r5'></a>
+<span class='ec-lmbx-12'>Remark 5.</span>  </span><span class='ec-lmri-12'>For  the  sake  of  notational  simplicity,  we  suppress  the  dependency  on  the
+</span><span class='ec-lmri-12'>hyperparameters of the kernel function </span><span class='lmmi-12'>k </span><span class='ec-lmri-12'>whenever possible.</span>
+</p>
+</div>
+<!-- l. 503 --><p class='indent'>
+The optimal hyperparameters <span class='lmmib-10x-x-120'>φ</span><sup><span class='lmsy8-'>∗</span></sup> <span class='lmsy-10x-x-120'>∈ </span><span class='rm-lmr-12'>Φ </span>and signal noise <span class='lmmi-12'>σ</span><sub>
+<span class='lmmi-8'>n</span></sub><sup><span class='lmsy8-'>∗</span></sup> in the sense of the likelihood are
+obtained as the minimum of the negative log marginal likelihood function
+</p>
+<div class='align'><img src='tutorial_material_html77x.png' alt='pict' /><a id='x1-22003r52'></a></div>
+<!-- l. 511 --><p class='indent'>   Since an analytic solution of the derivation of <a href='#x1-22001r51'>(51)</a> is impossible, a gradient based optimization
+algorithm is typically used to minimize the function. However, the negative log likelihood is
+non-convex in general such that there is no guarantee to find the optimum <span class='lmmib-10x-x-120'>φ</span><sup><span class='lmsy8-'>∗</span></sup><span class='rm-lmr-12'>, </span><span class='lmmi-12'>σ</span><sub>
+<span class='lmmi-8'>n</span></sub><sup><span class='lmsy8-'>∗</span></sup>. In fact, every
+local minimum corresponds to a particular interpretation of the data. In the following example, we
+visualize how the hyperparameters affect the regression.</p>
+<div class='mdframed' id='mdframed-12'>
+<div class='newtheorem'>
+<!-- l. 512 --><p class='noindent'><span class='head'>
+<a id='x1-22004r8'></a>
+<span class='ec-lmbx-12'>Example 8.</span>  </span>A GPR with the squared exponential kernel is trained on eight data points. The
+signal variance is fixed to <span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>1</span></sub> <span class='rm-lmr-12'>= 2.13</span>. First, we visualize the influence of the lengthscale. For this
+                                                                                         
+                                                                                         
+purpose, the signal noise is fixed to <span class='lmmi-12'>σ</span><sub><span class='lmmi-8'>n</span></sub> <span class='rm-lmr-12'>= 0.21</span>. <a href='#x1-22005r7'>Figure 7</a> shows the posterior mean of the
+regression and the neg. log likelihood function. On the left side are three posterior means for
+different lengthscales. A short lengthscale results in overfitting whereas a large lengthscale smooths
+out the training data (black crosses). The dotted red function represents the mean with optimized
+lengthscale by a descent gradient algorithm with respect to <a href='#x1-22003r52'>(52)</a>. The right plot shows the neg.
+log likelihood over the signal variance <span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>1</span></sub> and lengthscale <span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>2</span></sub>. The minimum is here
+at <span class='lmmib-10x-x-120'>φ</span><sup><span class='lmsy8-'>∗</span></sup> <span class='rm-lmr-12'>= [2.13, 1.58]</span><sup><span class='lmsy8-'>⊤</span></sup>. </p>
+<div class='center'>
+<!-- l. 514 --><p class='noindent'>
+</p><!-- l. 516 --><p class='noindent'> <img src='tikzextern/section2_model_selection2-.png' alt='PIC' id="responsive-image"/>  <a id='x1-22005r7'></a><a id='x1-22006'></a>
+</p>
+<figcaption class='caption'><span class='id'>Figure 7: </span><span class='content'>Left: Regression with different lengthscales: <span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>2</span></sub>  <span class='rm-lmr-12'>= 0.67 </span>(cyan, solid), <span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>2</span></sub>  <span class='rm-lmr-12'>= 7.39</span>
+(brown, dashed), and <span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>2</span></sub> <span class='rm-lmr-12'>= 1.58 </span>(red, dotted). Right: Neg. log likelihood function over signal
+variance <span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>1</span></sub> and lengthscale <span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>2</span></sub>.                                                          </span></figcaption><!-- tex4ht:label?: x1-22005r3  -->
+</div>
+<!-- l. 521 --><p class='noindent'>Next, the meaning of different interpretations of the data is visualized by varying the signal
+noise <span class='lmmi-12'>σ</span><sub><span class='lmmi-8'>n</span></sub> and the lengthscale <span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>2</span></sub>. The right plot of <a href='#x1-22007r8'>Fig. 8</a> shows two minima of the negative log
+likelihood function. The lower left minimum at <span class='rm-lmr-12'>log(</span><span class='lmmi-12'>σ</span><sub><span class='lmmi-8'>n</span></sub><span class='rm-lmr-12'>) = 0.73 </span>and <span class='rm-lmr-12'>log(</span><span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>2</span></sub><span class='rm-lmr-12'>) = </span><span class='lmsy-10x-x-120'>−</span><span class='rm-lmr-12'>1.51 </span>interprets the
+data as slightly noisy which leads to the dotted red posterior mean in the left plot. In contrast, the
+upper right minimum at <span class='rm-lmr-12'>log(</span><span class='lmmi-12'>σ</span><sub><span class='lmmi-8'>n</span></sub><span class='rm-lmr-12'>) = 5 </span>and <span class='rm-lmr-12'>log(</span><span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>2</span></sub><span class='rm-lmr-12'>) = </span><span class='lmsy-10x-x-120'>−</span><span class='rm-lmr-12'>0.24 </span>interprets the data as very noisy
+without a trend, which manifests as the cyan posterior mean in the left plot. Depending on
+the initial value, a gradient based optimizer would terminate in one of these minima.
+</p>
+<div class='center'>
+<!-- l. 522 --><p class='noindent'>
+</p><!-- l. 524 --><p class='noindent'> <img src='tikzextern/section2_model_selection3-.png' alt='PIC' id="responsive-image"/>  <a id='x1-22007r8'></a><a id='x1-22008'></a>
+</p>
+<figcaption class='caption'><span class='id'>Figure 8: </span><span class='content'>Left: Different interpretation of the data: Noisy data without a trend (cyan, solid)
+and slightly noisy data (red, dotted). Right: Negative log likelihood function over signal
+noise <span class='lmmi-12'>σ</span><sub><span class='lmmi-8'>n</span></sub> and lengthscale <span class='lmmi-12'>φ</span><sub><span class='rm-lmr-8'>2</span></sub>.                                                             </span></figcaption><!-- tex4ht:label?: x1-22007r3  -->
+</div>
+</div>
+<!-- l. 529 --><p class='noindent'>
+</p><!-- l. 529 --><p class='noindent'></p>
+   </div>
+   <h5 class='subsubsectionHead'><span class='titlemark'>3.2.2   </span> <a id='x1-230003.2.2'></a>Cross-validation Approach</h5>
+<!-- l. 531 --><p class='noindent'>This approach works with a separation of the data set <span class='lmsy-10x-x-120'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --> </span>in two classes: one for training and one
+for validation. Cross-validation is almost always used in the <span class='lmmi-12'>k</span><sub>cv</sub>-fold cross-validation setting:
+the <span class='lmmi-12'>k</span><sub>cv</sub>-fold cross-validation data is split into <span class='lmmi-12'>k</span><sub>cv</sub> disjoint, equally sized subsets; validation is
+done on a single subset and training is done using the union of the remaining <span class='lmmi-12'>k</span><sub>cv</sub> <span class='lmsy-10x-x-120'>− </span><span class='rm-lmr-12'>1 </span>subsets, the
+entire procedure is repeated <span class='lmmi-12'>k</span><sub>cv</sub> times, each time with a different subset for validation. Here,
+without loss of generality, we present the leave-one-out cross-validation, which means <span class='lmmi-12'>k</span><sub>cv</sub> <span class='rm-lmr-12'>= </span><span class='lmmi-12'>n</span><sub><span class='lmsy8-'><!-- span 
+class="htf-calligraphy" -->D<!-- /span --></span></sub>.
+                                                                                         
+                                                                                         
+The predictive log probability when leaving out a training point <span class='lmsy-10x-x-120'>{</span><span class='lmmib-10x-x-120'>x</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='lmmi-8'>i</span><span class='lmsy8-'>}</span></sup><span class='rm-lmr-12'>, </span><span class='lmmi-12'>ỹ</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='lmmi-8'>i</span><span class='lmsy8-'>}</span></sup><span class='lmsy-10x-x-120'>} </span>is given
+by
+</p>
+   <div class='align'><img src='tutorial_material_html78x.png' alt='pict' /><a id='x1-23001r53'></a></div>
+<!-- l. 535 --><p class='indent'>   where <span class='lmmi-12'>μ</span><sub><span class='lmsy8-'>−</span><span class='lmmi-8'>i</span></sub> <span class='rm-lmr-12'>= </span><span class='lmmi-12'>μ</span><span class='rm-lmr-12'>(</span><span class='lmmi-12'>f</span><sub>GP</sub><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>x</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='lmmi-8'>i</span><span class='lmsy8-'>}</span></sup><span class='rm-lmr-12'>)</span><span class='lmsy-10x-x-120'>|</span><span class='lmmib-10x-x-120'>x</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='lmmi-8'>i</span><span class='lmsy8-'>}</span></sup><span class='rm-lmr-12'>, </span><span class='lmmi-12'>X</span><sub>
+<span class='rm-lmr-8'>:,</span><span class='lmsy8-'>−</span><span class='lmmi-8'>i</span></sub><span class='rm-lmr-12'>, </span><span class='lmmi-12'>Y</span> <sub><span class='lmsy8-'>−</span><span class='lmmi-8'>i</span></sub><span class='rm-lmr-12'>) </span>and <span class='rm-lmr-12'>var</span> <sub><span class='lmsy8-'>−</span><span class='lmmi-8'>i</span></sub> <span class='rm-lmr-12'>= </span><span class='rm-lmr-12'>var(</span><span class='lmmi-12'>f</span><sub>GP</sub><span class='rm-lmr-12'>(</span><span class='lmmib-10x-x-120'>x</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='lmmi-8'>i</span><span class='lmsy8-'>}</span></sup><span class='rm-lmr-12'>)</span><span class='lmsy-10x-x-120'>|</span><span class='lmmib-10x-x-120'>x</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='lmmi-8'>i</span><span class='lmsy8-'>}</span></sup><span class='rm-lmr-12'>, </span><span class='lmmi-12'>X</span><sub>
+<span class='rm-lmr-8'>:,</span><span class='lmsy8-'>−</span><span class='lmmi-8'>i</span></sub><span class='rm-lmr-12'>, </span><span class='lmmi-12'>Y</span> <sub><span class='lmsy8-'>−</span><span class='lmmi-8'>i</span></sub><span class='rm-lmr-12'>)</span>.
+The <span class='lmsy-10x-x-120'>−</span><span class='lmmi-12'>i </span>index indicates <span class='lmmi-12'>X </span>and <span class='lmmi-12'>Y </span>without the element <span class='lmmib-10x-x-120'>x</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='lmmi-8'>i</span><span class='lmsy8-'>}</span></sup> and <span class='lmmi-12'>ỹ</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='lmmi-8'>i</span><span class='lmsy8-'>}</span></sup>, respectively.
+Thus, <a href='#x1-23001r53'>(53)</a> is the probability for the output <span class='lmmi-12'>y</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='lmmi-8'>i</span><span class='lmsy8-'>}</span></sup> at <span class='lmmib-10x-x-120'>x</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='lmmi-8'>i</span><span class='lmsy8-'>}</span></sup> but without the training
+point <span class='lmsy-10x-x-120'>{</span><span class='lmmib-10x-x-120'>x</span><sub>dat</sub><sup><span class='lmsy8-'>{</span><span class='lmmi-8'>i</span><span class='lmsy8-'>}</span></sup><span class='rm-lmr-12'>, </span><span class='lmmi-12'>ỹ</span><sup><span class='lmsy8-'>{</span><span class='lmmi-8'>i</span><span class='lmsy8-'>}</span></sup><span class='lmsy-10x-x-120'>}</span>. Accordingly, the leave-one-out log predictive probability <span class='lmmi-12'>L</span><sub>LOO</sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span>
+is
+</p>
+   <div class='align'><img src='tutorial_material_html79x.png' alt='pict' /><a id='x1-23002r54'></a></div>
+<!-- l. 539 --><p class='indent'>   In comparison to the log likelihood approach <a href='#x1-22003r52'>(52)</a>, the cross-validation is in general more
+computationally expensive but might find a better representation of the data set, see [<a href='#cite.0@geisser1979predictive'>GE79</a>] for
+discussion and related approaches.
+</p>
+   <h3 class='sectionHead'><span class='titlemark'>4   </span> <a id='x1-240004'></a>Gaussian Process Dynamical Models</h3>
+<!-- l. 541 --><p class='noindent'>So far, we consider GPR in non-dynamical settings where only an input-to-output mapping is
+considered. However, Gaussian process dynamical models (GPDMs) have recently become a
+versatile tool in system identification because of their beneficial properties such as the bias
+variance trade-off and the strong connection to Bayesian mathematics, see [<a href='#cite.0@frigola2014variational'>FCR14</a>]. In many
+works, where GPs are applied to dynamical model, only the mean function of the process is
+employed, e.g., in [<a href='#cite.0@wang2005gaussian'>WHB05</a>] and [<a href='#cite.0@chowdhary2013bayesian'>Cho+13</a>]. This is mainly because GP models are often used to
+replace deterministic parametric models. However, GPDMs contain a much richer description of
+the underlying dynamics, but also the uncertainty about the model itself when the full
+probabilistic representation is considered. Therefore, one main aspect of GPDMs is to
+distinguish between recurrent structures and non-recurrent structures. A model is called
+recurrent if parts of the regression vector depend on the outputs of the model. Even
+though recurrent models become more complex in terms of their behavior, they allow
+to model sequences of data, see [<a href='#cite.0@sjoberg1995nonlinear'>Sjö+95</a>]. If all states are fed back from the model
+itself, we get a simulation model, which is a special case of the recurrent structure.
+The advantage of such a model is its property to be independent from the real system.
+Thus, it is suitable for simulations, as it allows multi-step ahead predictions. In this
+report, we focus on two often-used recurrent structures: the Gaussian process state
+                                                                                         
+                                                                                         
+space model (GP-SSM) and the Gaussian process nonlinear error output (GP-NOE)
+model.
+</p>
+   <h4 class='subsectionHead'><span class='titlemark'>4.1   </span> <a id='x1-250004.1'></a>Gaussian Process State Space Models</h4>
+<!-- l. 543 --><p class='noindent'>Gaussian process state space models are structured as a discrete-time system. In this case, the
+states are the regressors, which is visualized in <a href='#x1-25004r9'>Fig. 9</a>. This approach allows to be more efficient,
+since the regressors are less restricted in their internal structure as in input-output models.
+Thus, a very efficient model in terms of number of regressors might be possible. The
+mapping from the states to the output is often be assumed to be known. The situation,
+where the output mapping describes a known sensor model, is such an example. It is
+mentioned in [<a href='#cite.0@frigola2013bayesian'>Fri+13</a>] that using too flexible models for both, the state mapping <span class='lmmib-10x-x-120'>f</span> and
+the output mapping, can result in problems of non-identifiability. Therefore, we focus
+on a known output mapping. The mathematical model of the GP-SSM is thus given
+by
+</p>
+   <div class='align'><img src='tutorial_material_html80x.png' alt='pict' /><a id='x1-25001r55'></a><a id='x1-25002r56'></a></div>
+<!-- l. 553 --><p class='indent'>   where <span class='lmmib-10x-x-120'>ξ</span><sub><span class='lmmi-8'>t</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ξ</span></sub></sup><span class='rm-lmr-12'>, </span><span class='lmmi-12'>n</span><sub>
+<span class='lmmi-8'>ξ</span></sub> <span class='rm-lmr-12'>= </span><span class='lmmi-12'>n</span><sub><span class='lmmi-8'>x</span></sub> <span class='rm-lmr-12'>+ </span><span class='lmmi-12'>n</span><sub><span class='lmmi-8'>u</span></sub> is the concatenation of the state vector <span class='lmmib-10x-x-120'>x</span><span class='lmmi-8'>t </span><span class='lmsy-10x-x-120'>∈<!-- span 
+class="htf-calligraphy" -->X<!-- /span --> ⊆ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>x</span></sub></sup> and the
+input <span class='lmmib-10x-x-120'>u</span><span class='lmmi-8'>t </span><span class='lmsy-10x-x-120'>∈ <!-- span 
+class="htf-calligraphy" -->U<!-- /span --> ⊆ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>u</span></sub></sup> such that <span class='lmmib-10x-x-120'>ξ</span><sub>
+<span class='lmmi-8'>t</span></sub> <span class='rm-lmr-12'>= [</span><span class='lmmib-10x-x-120'>x</span><span class='lmmi-8'>t</span><span class='rm-lmr-12'>; </span><span class='lmmib-10x-x-120'>u</span><sub><span class='lmmi-8'>t</span></sub><span class='rm-lmr-12'>]</span>. The mean function is given by continuous
+functions <span class='lmmi-12'>m</span><sup><span class='rm-lmr-8'>1</span></sup><span class='rm-lmr-12'>, </span><span class='lmmi-12'>…</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>m</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>x</span></sub></sup><span class='rm-lmr-12'>: </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ξ</span></sub></sup> <span class='lmsy-10x-x-120'>→ </span><span class='msbm-10x-x-120'>ℝ</span>. The output mapping is parametrized by a known vector <span class='lmmib-10x-x-120'>γ</span><sub>
+<span class='lmmi-8'>y</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>γ</span></sub></sup>
+with <span class='lmmi-12'>n</span><sub><span class='lmmi-8'>γ</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℕ</span>. The system identification task for the GP-SSM mainly focuses on <span class='lmmib-10x-x-120'>f</span> in particular. It
+can be described as finding the state-transition probability conditioned on the observed training
+data.
+</p>
+   <div class='newtheorem'>
+<!-- l. 554 --><p class='noindent'><span class='head'>
+<a id='x1-25003r6'></a>
+<span class='ec-lmbx-12'>Remark 6.</span>  </span><span class='ec-lmri-12'>The  potentially  unknown  number  of  regressors  can  be  determined  using
+</span><span class='ec-lmri-12'>established nonlinear identification techniques as presented in [</span><a href='#cite.0@keviczky1999nonlinear'><span class='ec-lmri-12'>KL99</span></a><span class='ec-lmri-12'>], or exploiting embedded
+</span><span class='ec-lmri-12'>techniques such as automatic relevance determination [</span><a href='#cite.0@kocijan2016modelling'><span class='ec-lmri-12'>Koc16</span></a><span class='ec-lmri-12'>]. A mismatch leads to similar
+</span><span class='ec-lmri-12'>issues as in parametric system identification.</span>
+</p>
+   </div>
+                                                                                         
+                                                                                         
+<!-- l. 556 --><p class='indent'>
+</p><figure class='figure'> 
+
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+<div class='center'>
+<!-- l. 558 --><p class='noindent'>
+</p><!-- l. 559 --><p class='noindent'> <img src='tikzextern/section2_model_structure_ssm-.png' alt='PIC' id="responsive-image"/>  <a id='x1-25004r9'></a>
+<a id='x1-25005'></a>
+</p>
+<figcaption class='caption'><span class='id'>Figure 9: </span><span class='content'>Structure of a GP-SSM with <span class='eufm-10x-x-120'>𝔓 </span>as backshift operator, such that <span class='eufm-10x-x-120'>𝔓</span><sup><span class='lmsy8-'>−</span><span class='rm-lmr-8'>1</span></sup><span class='lmmib-10x-x-120'>x
+</span><span class='lmmi-8'>t</span><span class='rm-lmr-8'>+1 </span><span class='rm-lmr-12'>= </span><span class='lmmib-10x-x-120'>x</span><span class='lmmi-8'>t</span>  </span></figcaption><!-- tex4ht:label?: x1-25004r4  -->
+</div>
+                                                                                         
+                                                                                         
+   </figure>
+   <h4 class='subsectionHead'><span class='titlemark'>4.2   </span> <a id='x1-260004.2'></a>Gaussian Process Nonlinear Output Error Models</h4>
+<!-- l. 566 --><p class='noindent'>The GP-NOE model uses the past <span class='lmmi-12'>n</span><sub>in</sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℕ</span><sub><span class='lmmi-8'>&gt;</span><span class='rm-lmr-8'>0</span></sub> input values <span class='lmmib-10x-x-120'>u</span><span class='lmmi-8'>t </span><span class='lmsy-10x-x-120'>∈<!-- span 
+class="htf-calligraphy" -->U<!-- /span --> </span>and the past <span class='lmmi-12'>n</span><sub>in</sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℕ</span><sub><span class='lmmi-8'>&gt;</span><span class='rm-lmr-8'>0</span></sub> output
+values <span class='lmmib-10x-x-120'>y</span><span class='lmmi-8'>t </span><span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>y</span></sub></sup> of the model as the regressors. <a href='#x1-26002r10'>Figure 10</a> shows the structure of GP-NOE, where
+the outputs are feedbacked. Analogously to the GP-SSM, the mathematical model of the GP-NOE
+is given by
+</p>
+   <div class='align'><img src='tutorial_material_html81x.png' alt='pict' /><a id='x1-26001r57'></a></div>
+<!-- l. 574 --><p class='indent'>   where <span class='lmmib-10x-x-120'>ζ</span><span class='lmmi-8'>t </span><span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ζ</span></sub></sup><span class='rm-lmr-12'>, </span><span class='lmmi-12'>n</span><sub>
+<span class='lmmi-8'>ζ</span></sub> <span class='rm-lmr-12'>= </span><span class='lmmi-12'>n</span><sub>in</sub><span class='lmmi-12'>n</span><sub><span class='lmmi-8'>y</span></sub> <span class='rm-lmr-12'>+ </span><span class='lmmi-12'>n</span><sub>in</sub><span class='lmmi-12'>n</span><sub><span class='lmmi-8'>u</span></sub> is the concatenation of the past outputs <span class='lmmib-10x-x-120'>y</span><span class='lmmi-8'>t</span> and inputs <span class='lmmib-10x-x-120'>u</span><span class='lmmi-8'>t</span>
+such that <span class='lmmib-10x-x-120'>ζ</span><span class='lmmi-8'>t </span><span class='rm-lmr-12'>= [</span><span class='lmmib-10x-x-120'>y</span><sub><span class='lmmi-8'>t</span><span class='lmsy8-'>−</span><span class='lmmi-8'>n</span><sub>in</sub><span class='rm-lmr-8'>+1</span></sub><span class='rm-lmr-12'>; </span><span class='lmmi-12'>…</span><span class='rm-lmr-12'>; </span><span class='lmmib-10x-x-120'>y</span><sub><span class='lmmi-8'>t</span></sub><span class='rm-lmr-12'>; </span><span class='lmmib-10x-x-120'>u</span><sub><span class='lmmi-8'>t</span><span class='lmsy8-'>−</span><span class='lmmi-8'>n</span><sub>in</sub><span class='rm-lmr-8'>+1</span></sub><span class='rm-lmr-12'>; </span><span class='lmmi-12'>…</span><span class='rm-lmr-12'>; </span><span class='lmmib-10x-x-120'>u</span><sub><span class='lmmi-8'>t</span></sub><span class='rm-lmr-12'>]</span>. The mean function is given by continuous
+functions <span class='lmmi-12'>m</span><sup><span class='rm-lmr-8'>1</span></sup><span class='rm-lmr-12'>, </span><span class='lmmi-12'>…</span><span class='rm-lmr-12'>, </span><span class='lmmi-12'>m</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>y</span></sub></sup><span class='rm-lmr-12'>: </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ζ</span></sub></sup> <span class='lmsy-10x-x-120'>→ </span><span class='msbm-10x-x-120'>ℝ</span>. In contrast to nonlinear autoregressive exogenous models, that
+focus on one-step ahead prediction, a NOE model is more suitable for simulations as it considers
+the multi-step ahead prediction [<a href='#cite.0@nelles2013nonlinear'>Nel13</a>]. However, the drawback is a more complex training
+procedure that requires a nonlinear optimization scheme due to their recurrent structure [<a href='#cite.0@kocijan2016modelling'>Koc16</a>].
+</p><figure class='figure'> 
+
+                                                                                         
+                                                                                         
+                                                                                         
+                                                                                         
+<div class='center'>
+<!-- l. 577 --><p class='noindent'>
+</p><!-- l. 578 --><p class='noindent'> <img src='tikzextern/section2_model_structure_noe-.png' alt='PIC' id="responsive-image"/>  <a id='x1-26002r10'></a>
+<a id='x1-26003'></a>
+</p>
+<figcaption class='caption'><span class='id'>Figure 10: </span><span class='content'>Structure of a GP-NOE model with <span class='eufm-10x-x-120'>𝔓 </span>as backshift operator (<span class='eufm-10x-x-120'>𝔓</span><sup><span class='lmsy8-'>−</span><span class='rm-lmr-8'>1</span></sup><span class='lmmib-10x-x-120'>y
+</span><span class='lmmi-8'>t</span><span class='rm-lmr-8'>+1 </span><span class='rm-lmr-12'>= </span><span class='lmmib-10x-x-120'>y</span><span class='lmmi-8'>t</span>)   </span></figcaption><!-- tex4ht:label?: x1-26002r4  --></div>
+                                                                                         
+                                                                                         
+   </figure>
+   <div class='newtheorem'>
+<!-- l. 584 --><p class='noindent'><span class='head'>
+<a id='x1-26004r7'></a>
+<span class='ec-lmbx-12'>Remark 7.</span>  </span><span class='ec-lmri-12'>It  is  always  possible  to  convert  an  identified  input-output  model  into  a
+</span><span class='ec-lmri-12'>state-space model, see[</span><a href='#cite.0@phan1970relationship'><span class='ec-lmri-12'>PL70</span></a><span class='ec-lmri-12'>]. However, focusing on state-space models only would preclude
+</span><span class='ec-lmri-12'>the development of a large number of useful identification results.</span>
+</p>
+   </div>
+<!-- l. 586 --><p class='indent'>
+</p>
+   <div class='newtheorem'>
+<!-- l. 587 --><p class='noindent'><span class='head'>
+<a id='x1-26005r8'></a>
+<span class='ec-lmbx-12'>Remark 8.</span>  </span><span class='ec-lmri-12'>Control relevant properties of GP-SSMs and GO-NOE models are discussed
+</span><span class='ec-lmri-12'>in [</span><a href='#cite.0@beckers2016'><span class='ec-lmri-12'>BH16b</span></a><span class='ec-lmri-12'>; </span><a href='#cite.0@beckers:cdc2016'><span class='ec-lmri-12'>BH16a</span></a><span class='ec-lmri-12'>; </span><a href='#cite.0@beckers2020'><span class='ec-lmri-12'>BH20</span></a><span class='ec-lmri-12'>].</span>
+</p>
+   </div>
+<!-- l. 589 --><p class='indent'>
+                                                                                         
+                                                                                         
+</p>
+   <h3 class='sectionHead'><span class='titlemark'>5   </span> <a id='x1-270005'></a>Summary</h3>
+<!-- l. 592 --><p class='noindent'>In this article, we introduce the GP and its usage in GPR. Based on the property, that every finite
+subset of a GP follows a multi-variate Gaussian distribution, a closed-form equation can be derived
+to predict the mean and variance for a new test point. The GPR can intrinsically handle noisy
+output data if it is Gaussian distributed. As GPR is a data-driven method, only little prior
+knowledge is necessary for the regression. Further, the complexity of GP models scales with the
+number of training points. A degree of freedom in the modeling is the selection of the kernel
+function and its hyperparameters. We present an overview of common kernels and the necessary
+properties to be a valid kernel function. For the hyperparameter determination, two
+approaches based on numerical optimization are shown. The kernel of the GP is uniquely
+related to a RKHS, which determines the shape of the samples of the GP. Based on
+this, we compare different approaches for the quantification of the model error that
+quantifies the error between the GPR and the actual data-generating function. Finally, we
+introduce how GP models can be used as dynamical systems in GP-SSMs and GP-NOE
+models.
+</p><!-- l. 594 --><p class='noindent'>
+</p>
+   <h3 class='sectionHead'><span class='titlemark'>6   </span> <a id='x1-280006'></a>Conditional Distribution</h3>
+<!-- l. 595 --><p class='noindent'>Let <span class='lmmib-10x-x-120'>ν</span><sub><span class='rm-lmr-8'>1</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ν</span><sub><span class='rm-lmr-6'>1</span></sub></sub></sup><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>ν</span><sub>
+<span class='rm-lmr-8'>2</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ν</span><sub><span class='rm-lmr-6'>2</span></sub></sub></sup>  with <span class='lmmi-12'>n</span><sub>
+<span class='lmmi-8'>ν</span><sub><span class='rm-lmr-6'>1</span></sub></sub><span class='rm-lmr-12'>, </span><span class='lmmi-12'>n</span><sub><span class='lmmi-8'>ν</span><sub><span class='rm-lmr-6'>1</span></sub></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℕ </span>be probability variables, which are multivariate
+Gaussian distribution
+</p>
+   <div class='align'><img src='tutorial_material_html82x.png' alt='pict' /><a id='x1-28001r58'></a></div>
+<!-- l. 599 --><p class='indent'>   with mean <span class='lmmib-10x-x-120'>μ</span><sub><span class='rm-lmr-8'>1</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ν</span><sub><span class='rm-lmr-6'>1</span></sub></sub></sup><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>μ</span><sub>
+<span class='rm-lmr-8'>2</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ν</span><sub><span class='rm-lmr-6'>2</span></sub></sub></sup> and variance <span class='rm-lmr-12'>Σ</span><sub>
+<span class='rm-lmr-8'>11</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ν</span><sub><span class='rm-lmr-6'>1</span></sub></sub><span class='lmsy8-'>×</span><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ν</span><sub><span class='rm-lmr-6'>1</span></sub></sub></sup><span class='rm-lmr-12'>, Σ</span><sub>
+<span class='rm-lmr-8'>12</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ν</span><sub><span class='rm-lmr-6'>2</span></sub></sub><span class='lmsy8-'>×</span><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ν</span><sub><span class='rm-lmr-6'>1</span></sub></sub></sup><span class='rm-lmr-12'>, Σ</span><sub>
+<span class='rm-lmr-8'>22</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ν</span><sub><span class='rm-lmr-6'>2</span></sub></sub><span class='lmsy8-'>×</span><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ν</span><sub><span class='rm-lmr-6'>2</span></sub></sub></sup>.
+The task is to determine the conditional probability
+</p>
+   <div class='align'><img src='tutorial_material_html83x.png' alt='pict' /><a id='x1-28002r59'></a></div>
+<!-- l. 603 --><p class='indent'>   The joined probability <span class='rm-lmr-12'>p(</span><span class='lmmib-10x-x-120'>ν</span><sub><span class='rm-lmr-8'>1</span></sub><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>ν</span><sub><span class='rm-lmr-8'>2</span></sub><span class='rm-lmr-12'>) </span>is a multivariate Gaussian distribution with
+</p>
+                                                                                         
+                                                                                         
+   <div class='align'><img src='tutorial_material_html84x.png' alt='pict' /><a id='x1-28003r60'></a><a id='x1-28004r61'></a></div>
+<!-- l. 613 --><p class='indent'>   where <span class='lmmib-10x-x-120'>x </span><span class='rm-lmr-12'>= [</span><span class='lmmib-10x-x-120'>x</span><sub><span class='rm-lmr-8'>1</span></sub><span class='rm-lmr-12'>; </span><span class='lmmib-10x-x-120'>x</span><sub><span class='rm-lmr-8'>2</span></sub><span class='rm-lmr-12'>], </span><span class='lmmib-10x-x-120'>x</span><sub><span class='rm-lmr-8'>1</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ν</span><sub><span class='rm-lmr-6'>1</span></sub></sub></sup><span class='rm-lmr-12'>, </span><span class='lmmib-10x-x-120'>x</span><sub>
+<span class='rm-lmr-8'>2</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ν</span><sub><span class='rm-lmr-6'>2</span></sub></sub></sup>. The marginal distribution of <span class='lmmib-10x-x-120'>ν</span><sub>
+<span class='rm-lmr-8'>1</span></sub> is defined by the
+mean <span class='lmmib-10x-x-120'>μ</span><sub><span class='rm-lmr-8'>1</span></sub> and the variance <span class='rm-lmr-12'>Σ</span><sub><span class='rm-lmr-8'>11</span></sub> such that
+</p>
+   <div class='align'><img src='tutorial_material_html85x.png' alt='pict' /><a id='x1-28005r62'></a></div>
+<!-- l. 617 --><p class='indent'>   The division of the joint distribution by the marginal distribution results again in a Gaussian
+distribution with
+</p>
+   <div class='align'><img src='tutorial_material_html86x.png' alt='pict' /><a id='x1-28006r63'></a></div>
+<!-- l. 621 --><p class='indent'>   where the first part <span class='lmsy-10x-x-120'>∗ </span>can be rewritten as
+</p>
+   <div class='align'><img src='tutorial_material_html87x.png' alt='pict' /><a id='x1-28007r64'></a></div>
+<!-- l. 625 --><p class='indent'>   Thus, the covariance matrix <span class='rm-lmr-12'>Σ</span><sub><span class='rm-lmr-8'>22</span><span class='lmsy8-'>|</span><span class='rm-lmr-8'>1</span></sub> of the conditional distribution <span class='rm-lmr-12'>p(</span><span class='lmmib-10x-x-120'>ν</span><sub><span class='rm-lmr-8'>2</span></sub><span class='lmsy-10x-x-120'>|</span><span class='lmmib-10x-x-120'>ν</span><sub><span class='rm-lmr-8'>1</span></sub><span class='rm-lmr-12'>) </span>is given
+by
+</p>
+   <div class='align'><img src='tutorial_material_html88x.png' alt='pict' /><a id='x1-28008r65'></a></div>
+<!-- l. 629 --><p class='indent'>   For the simplification of the second part <span class='lmsy-10x-x-120'>∗∗ </span>of <a href='#x1-28006r63'>(63)</a>, we exploit the special block structure of <span class='rm-lmr-12'>Σ</span>,
+                                                                                         
+                                                                                         
+such that its inverse is given by
+</p>
+   <div class='align'><img src='tutorial_material_html89x.png' alt='pict' /><a id='x1-28009r66'></a><a id='x1-28010r67'></a><a id='x1-28011r68'></a><a id='x1-28012r69'></a><a id='x1-28013r70'></a></div>
+<!-- l. 637 --><p class='indent'>   with <span class='lmmi-12'>N </span><span class='rm-lmr-12'>= (Σ</span><sub><span class='rm-lmr-8'>22</span></sub> <span class='lmsy-10x-x-120'>− </span><span class='rm-lmr-12'>Σ</span><sub><span class='rm-lmr-8'>21</span></sub><span class='rm-lmr-12'>Σ</span><sub><span class='rm-lmr-8'>11</span></sub><sup><span class='lmsy8-'>−</span><span class='rm-lmr-8'>1</span></sup><span class='rm-lmr-12'>Σ</span><sub>
+<span class='rm-lmr-8'>12</span></sub><span class='rm-lmr-12'>)</span><sup><span class='lmsy8-'>−</span><span class='rm-lmr-8'>1</span></sup>. Thus, we compute <span class='lmsy-10x-x-120'>∗∗ </span>as
+</p>
+   <div class='align'><img src='tutorial_material_html90x.png' alt='pict' /><a id='x1-28014r71'></a><a id='x1-28015r72'></a><a id='x1-28016r73'></a></div>
+<!-- l. 644 --><p class='indent'>   Finally, the conditional probability is given with the conditional mean <span class='lmmib-10x-x-120'>μ</span><sub><span class='rm-lmr-8'>2</span><span class='lmsy8-'>|</span><span class='rm-lmr-8'>1</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ν</span><sub><span class='rm-lmr-6'>2</span></sub></sub></sup>  and the
+conditional covariance matrix <span class='rm-lmr-12'>Σ</span><sub><span class='rm-lmr-8'>22</span><span class='lmsy8-'>|</span><span class='rm-lmr-8'>1</span></sub> <span class='lmsy-10x-x-120'>∈ </span><span class='msbm-10x-x-120'>ℝ</span><sup><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ν</span><sub><span class='rm-lmr-6'>2</span></sub></sub><span class='lmsy8-'>×</span><span class='lmmi-8'>n</span><sub><span class='lmmi-6'>ν</span><sub><span class='rm-lmr-6'>2</span></sub></sub></sup>  by
+</p>
+   <div class='align'><img src='tutorial_material_html91x.png' alt='pict' /><a id='x1-28017r74'></a><a id='x1-28018r75'></a><a id='x1-28019r76'></a></div>
+                                                                                         
+                                                                                         
+   <h3 class='sectionHead'><a id='x1-290006'></a>References</h3>
+<!-- l. 656 --><p class='noindent'>
+           </p><dl class='thebibliography'><dt class='thebibliography' id='X0-MAL-036'>
+[ÁRL12]   </dt><dd class='thebibliography' id='bib-1'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@MAL-036'></a>Mauricio  A.  Álvarez,  Lorenzo  Rosasco,  and  Neil  D.  Lawrence.  “Kernels  for
+           Vector-Valued Functions: A Review”. In: <span class='ec-lmri-12'>Foundations and Trends in Machine
+           </span><span class='ec-lmri-12'>Learning </span>4.3 (2012), pp. 195–266. <span class='ec-lmcsc-10x-x-120'>doi</span>: <a href='https://doi.org/10.1561/2200000036'><a class='url' href='10.1561/2200000036'><span class='ec-lmtt-12'>10.1561/2200000036</span></a></a>.
+           </p></dd><dt class='thebibliography' id='X0-aronszajn1950theory'>
+[Aro50]    </dt><dd class='thebibliography' id='bib-2'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@aronszajn1950theory'></a>Nachman Aronszajn. “Theory of reproducing kernels”. In: <span class='ec-lmri-12'>Transactions of the
+           </span><span class='ec-lmri-12'>American mathematical society </span>68.3 (1950), pp. 337–404. <span class='ec-lmcsc-10x-x-120'>doi</span>: <a href='https://doi.org/10.2307/1990404'><a class='url' href='10.2307/1990404'><span class='ec-lmtt-12'>10.2307/1990404</span></a></a>.
+           </p></dd><dt class='thebibliography' id='X0-Berkenkamp2016ROA'>
+[Ber+16]   </dt><dd class='thebibliography' id='bib-3'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@Berkenkamp2016ROA'></a>Felix Berkenkamp, Riccardo Moriconi, Angela P. Schoellig, and Andreas Krause.
+           “Safe Learning of Regions of Attraction for Uncertain, Nonlinear Systems with
+           Gaussian Processes”. In: <span class='ec-lmri-12'>2016 IEEE 55th Conference on Decision and Control
+           </span><span class='ec-lmri-12'>(CDC)</span>. 2016, pp. 4661–4666.
+           </p></dd><dt class='thebibliography' id='X0-berkenkamp2017safe'>
+[Ber+17]   </dt><dd class='thebibliography' id='bib-4'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@berkenkamp2017safe'></a>Felix Berkenkamp, Matteo Turchetta, Angela P. Schoellig, and Andreas Krause.
+           “Safe  Model-based  Reinforcement  Learning  with  Stability  Guarantees”.  In:
+           <span class='ec-lmri-12'>Advances in Neural Information Processing Systems</span>. 2017, pp. 908–918.
+           </p></dd><dt class='thebibliography' id='X0-beckers:cdc2016'>
+[BH16a]    </dt><dd class='thebibliography' id='bib-5'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@beckers:cdc2016'></a>Thomas Beckers and Sandra Hirche. “Equilibrium distributions and stability
+           analysis  of  Gaussian  Process  State  Space  Models”.  In:  <span class='ec-lmri-12'>2016  IEEE  55th
+           </span><span class='ec-lmri-12'>Conference  on  Decision  and  Control  (CDC)</span>.  2016,  pp.  6355–6361.  <span class='ec-lmcsc-10x-x-120'>doi</span>:
+           <a href='https://doi.org/10.1109/CDC.2016.7799247'><a class='url' href='10.1109/CDC.2016.7799247'><span class='ec-lmtt-12'>10.1109/CDC.2016.7799247</span></a></a>.
+           </p></dd><dt class='thebibliography' id='X0-beckers2016'>
+[BH16b]   </dt><dd class='thebibliography' id='bib-6'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@beckers2016'></a>Thomas Beckers and Sandra Hirche. “Stability of Gaussian Process State Space
+           Models”. In: <span class='ec-lmri-12'>2016 European Control Conference (ECC)</span>. 2016, pp. 2275–2281.
+           <span class='ec-lmcsc-10x-x-120'>doi</span>: <a href='https://doi.org/10.1109/ECC.2016.7810630'><a class='url' href='10.1109/ECC.2016.7810630'><span class='ec-lmtt-12'>10.1109/ECC.2016.7810630</span></a></a>.
+           </p></dd><dt class='thebibliography' id='X0-beckers2020'>
+[BH20]     </dt><dd class='thebibliography' id='bib-7'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@beckers2020'></a>Thomas  Beckers  and  Sandra  Hirche.  “Prediction  with  Gaussian  Process
+           Dynamical Models”. In: <span class='ec-lmri-12'>Transaction on Automatic Control </span>(2020). Submitted.
+           </p></dd><dt class='thebibliography' id='X0-bishop2006pattern'>
+[Bis06]     </dt><dd class='thebibliography' id='bib-8'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@bishop2006pattern'></a>Christopher Bishop. <span class='ec-lmri-12'>Pattern recognition and machine learning</span>. Springer-Verlag
+           New York, 2006. <span class='ec-lmcsc-10x-x-120'>isbn</span>: 9780387310732.
+                                                                                         
+                                                                                         
+           </p></dd><dt class='thebibliography' id='X0-beckers2019automatica'>
+[BKH19]   </dt><dd class='thebibliography' id='bib-9'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@beckers2019automatica'></a>Thomas Beckers, Dana Kulić, and Sandra Hirche. “Stable Gaussian Process
+           based Tracking Control of Euler-Lagrange Systems”. In: <span class='ec-lmri-12'>Automatica </span>103 (2019),
+           pp. 390–397. <span class='ec-lmcsc-10x-x-120'>doi</span>: <a href='https://doi.org/10.1016/j.automatica.2019.01.023'><a class='url' href='10.1016/j.automatica.2019.01.023'><span class='ec-lmtt-12'>10.1016/j.automatica.2019.01.023</span></a></a>.
+           </p></dd><dt class='thebibliography' id='X0-bhujwalla2016impact'>
+[BLG16]   </dt><dd class='thebibliography' id='bib-10'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@bhujwalla2016impact'></a>Yusuf  Bhujwalla,  Vincent  Laurain,  and  Marion  Gilson.  “The  impact  of
+           smoothness  on  model  class  selection  in  nonlinear  system  identification:  An
+           application of derivatives in the RKHS”. In: <span class='ec-lmri-12'>2016 American Control Conference
+           </span><span class='ec-lmri-12'>(ACC)</span>. 2016, pp. 1808–1813. <span class='ec-lmcsc-10x-x-120'>doi</span>: <a href='https://doi.org/10.1109/ACC.2016.7525181'><a class='url' href='10.1109/ACC.2016.7525181'><span class='ec-lmtt-12'>10.1109/ACC.2016.7525181</span></a></a>.
+           </p></dd><dt class='thebibliography' id='X0-beckers:cdc2018'>
+[BUH18]   </dt><dd class='thebibliography' id='bib-11'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@beckers:cdc2018'></a>Thomas   Beckers,   Jonas   Umlauft,   and   Sandra   Hirche.   “Mean   Square
+           Prediction  Error  of  Misspecified  Gaussian  Process  Models”.  In:  <span class='ec-lmri-12'>2018  IEEE
+           </span><span class='ec-lmri-12'>Conference  on  Decision  and  Control  (CDC)</span>.  2018,  pp.  1162–1167.  <span class='ec-lmcsc-10x-x-120'>doi</span>:
+           <a href='https://doi.org/10.1109/CDC.2018.8619163'><a class='url' href='10.1109/CDC.2018.8619163'><span class='ec-lmtt-12'>10.1109/CDC.2018.8619163</span></a></a>.
+           </p></dd><dt class='thebibliography' id='X0-chowdhary2013bayesian'>
+[Cho+13]  </dt><dd class='thebibliography' id='bib-12'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@chowdhary2013bayesian'></a>Girish   Chowdhary,   Hassan   Kingravi,   Jonathan   How,   and   Patricio   A.
+           Vela.  “Bayesian  nonparametric  adaptive  control  of  time-varying  systems
+           using  Gaussian  processes”.  In:  <span class='ec-lmri-12'>2013  American  Control  Conference</span>.  2013,
+           pp. 2655–2661. <span class='ec-lmcsc-10x-x-120'>doi</span>: <a href='https://doi.org/10.1109/ACC.2013.6580235'><a class='url' href='10.1109/ACC.2013.6580235'><span class='ec-lmtt-12'>10.1109/ACC.2013.6580235</span></a></a>.
+           </p></dd><dt class='thebibliography' id='X0-debnath2005introduction'>
+[DM+05]  </dt><dd class='thebibliography' id='bib-13'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@debnath2005introduction'></a>Lokenath Debnath, Piotr Mikusinski, et al. <span class='ec-lmri-12'>Introduction to Hilbert spaces with
+           </span><span class='ec-lmri-12'>applications</span>. Academic press, 2005.
+           </p></dd><dt class='thebibliography' id='X0-frigola2014variational'>
+[FCR14]   </dt><dd class='thebibliography' id='bib-14'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@frigola2014variational'></a>Roger  Frigola,  Yutian  Chen,  and  Carl  E.  Rasmussen.  <span class='ec-lmri-12'>Variational  Gaussian
+           </span><span class='ec-lmri-12'>Process State-Space Models</span>. 2014. arXiv: <a href='https://arxiv.org/abs/1406.4905'><a class='url' href='1406.4905'><span class='ec-lmtt-12'>1406.4905</span></a> <span class='ec-lmtt-12'>[cs.LG]</span></a>.
+           </p></dd><dt class='thebibliography' id='X0-frigola2013bayesian'>
+[Fri+13]   </dt><dd class='thebibliography' id='bib-15'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@frigola2013bayesian'></a>Roger Frigola, Fredrik Lindsten, Thomas B. Schön, and Carl E. Rasmussen.
+           “Bayesian inference and learning in Gaussian process state-space models with
+           particle MCMC”. In: <span class='ec-lmri-12'>Advances in Neural Information Processing Systems</span>. 2013,
+           pp. 3156–3164.
+           </p></dd><dt class='thebibliography' id='X0-geisser1979predictive'>
+[GE79]     </dt><dd class='thebibliography' id='bib-16'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@geisser1979predictive'></a>Seymour  Geisser  and  William  F.  Eddy.  “A  Predictive  Approach  to  Model
+           Selection”. In: <span class='ec-lmri-12'>Journal of the American Statistical Association </span>74.365 (1979),
+           pp. 153–160. <span class='ec-lmcsc-10x-x-120'>doi</span>: <a href='https://doi.org/10.1080/01621459.1979.10481632'><a class='url' href='10.1080/01621459.1979.10481632'><span class='ec-lmtt-12'>10.1080/01621459.1979.10481632</span></a></a>.
+           </p></dd><dt class='thebibliography' id='X0-keviczky1999nonlinear'>
+[KL99]     </dt><dd class='thebibliography' id='bib-17'>
+                                                                                         
+                                                                                         
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@keviczky1999nonlinear'></a>Robert Keviczky and Haber Laszlo. <span class='ec-lmri-12'>Nonlinear system identification: input-output
+           </span><span class='ec-lmri-12'>modeling approach</span>. Springer Netherlands, 1999. <span class='ec-lmcsc-10x-x-120'>isbn</span>: 9780792358589.
+           </p></dd><dt class='thebibliography' id='X0-kocijan2016modelling'>
+[Koc16]    </dt><dd class='thebibliography' id='bib-18'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@kocijan2016modelling'></a>Juš     Kocijan.     <span class='ec-lmri-12'>Modelling     and     Control     of     Dynamic     Systems
+           </span><span class='ec-lmri-12'>Using Gaussian Process Models</span>. Springer International Publishing, 2016. <span class='ec-lmcsc-10x-x-120'>doi</span>:
+           <a href='https://doi.org/10.1007/978-3-319-21021-6'><a class='url' href='10.1007/978-3-319-21021-6'><span class='ec-lmtt-12'>10.1007/978-3-319-21021-6</span></a></a>.
+           </p></dd><dt class='thebibliography' id='X0-mackay1997gaussian'>
+[Mac97]    </dt><dd class='thebibliography' id='bib-19'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@mackay1997gaussian'></a>David J. MacKay. <span class='ec-lmri-12'>Gaussian Processes - A Replacement for Supervised Neural
+           </span><span class='ec-lmri-12'>Networks? </span>1997.
+           </p></dd><dt class='thebibliography' id='X0-micchelli2006universal'>
+[MXZ06]   </dt><dd class='thebibliography' id='bib-20'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@micchelli2006universal'></a>Charles A. Micchelli, Yuesheng Xu, and Haizhang Zhang. “Universal kernels”.
+           In: <span class='ec-lmri-12'>Journal of Machine Learning Research </span>7 (2006), pp. 2651–2667.
+           </p></dd><dt class='thebibliography' id='X0-nelles2013nonlinear'>
+[Nel13]     </dt><dd class='thebibliography' id='bib-21'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@nelles2013nonlinear'></a>Oliver  Nelles.  <span class='ec-lmri-12'>Nonlinear  system  identification:  from  classical  approaches  to
+           </span><span class='ec-lmri-12'>neural networks and fuzzy models</span>. Springer-Verlag Berlin Heidelberg, 2013. <span class='ec-lmcsc-10x-x-120'>doi</span>:
+           <a href='https://doi.org/10.1007/978-3-662-04323-3'><a class='url' href='10.1007/978-3-662-04323-3'><span class='ec-lmtt-12'>10.1007/978-3-662-04323-3</span></a></a>.
+           </p></dd><dt class='thebibliography' id='X0-phan1970relationship'>
+[PL70]     </dt><dd class='thebibliography' id='bib-22'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@phan1970relationship'></a>M.  Q.  Phan  and  R.  W.  Longman.  “Relationship  between  state-space  and
+           input-output models via observer Markov parameters”. In: <span class='ec-lmri-12'>WIT Transactions on
+           </span><span class='ec-lmri-12'>The Built Environment </span>22 (1970). <span class='ec-lmcsc-10x-x-120'>doi</span>: <a href='https://doi.org/10.2495/DCSS960121'><a class='url' href='10.2495/DCSS960121'><span class='ec-lmtt-12'>10.2495/DCSS960121</span></a></a>.
+           </p></dd><dt class='thebibliography' id='X0-neal1996bayesian'>
+[Rad96]    </dt><dd class='thebibliography' id='bib-23'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@neal1996bayesian'></a>Neal M. Radford. <span class='ec-lmri-12'>Bayesian learning for neural networks</span>. Springer-Verlag New
+           York, 1996. <span class='ec-lmcsc-10x-x-120'>doi</span>: <a href='https://doi.org/10.1007/978-1-4612-0745-0'><a class='url' href='10.1007/978-1-4612-0745-0'><span class='ec-lmtt-12'>10.1007/978-1-4612-0745-0</span></a></a>.
+           </p></dd><dt class='thebibliography' id='X0-rasmussen2006gaussian'>
+[Ras06]    </dt><dd class='thebibliography' id='bib-24'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@rasmussen2006gaussian'></a>Carl E. Rasmussen. <span class='ec-lmri-12'>Gaussian processes for machine learning</span>. The MIT Press,
+           2006. <span class='ec-lmcsc-10x-x-120'>isbn</span>: 9780262182539.
+           </p></dd><dt class='thebibliography' id='X0-shawe2004kernel'>
+[SC04]     </dt><dd class='thebibliography' id='bib-25'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@shawe2004kernel'></a>John Shawe-Taylor and Nello Cristianini. <span class='ec-lmri-12'>Kernel methods for pattern analysis</span>.
+           Cambridge university press, 2004. <span class='ec-lmcsc-10x-x-120'>doi</span>: <a href='https://doi.org/10.1017/CBO9780511809682'><a class='url' href='10.1017/CBO9780511809682'><span class='ec-lmtt-12'>10.1017/CBO9780511809682</span></a></a>.
+           </p></dd><dt class='thebibliography' id='X0-steinwart2008support'>
+[SC08]     </dt><dd class='thebibliography' id='bib-26'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@steinwart2008support'></a>Ingo  Steinwart  and  Andreas  Christmann.  <span class='ec-lmri-12'>Support vector machines</span>.  Springer
+           Science &amp; Business Media, 2008. <span class='ec-lmcsc-10x-x-120'>doi</span>: <a href='https://doi.org/10.1007/978-0-387-77242-4'><a class='url' href='10.1007/978-0-387-77242-4'><span class='ec-lmtt-12'>10.1007/978-0-387-77242-4</span></a></a>.
+           </p></dd><dt class='thebibliography' id='X0-steinwart2006explicit'>
+[SHS06]    </dt><dd class='thebibliography' id='bib-27'>
+                                                                                         
+                                                                                         
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@steinwart2006explicit'></a>Ingo  Steinwart,  Don  Hush,  and  Clint  Scovel.  “An  explicit  description  of
+           the  reproducing  kernel  Hilbert  spaces  of  Gaussian  RBF  kernels”.  In:  <span class='ec-lmri-12'>IEEE
+           </span><span class='ec-lmri-12'>Transactions  on  Information  Theory  </span>52.10  (2006),  pp.  4635–4643.  <span class='ec-lmcsc-10x-x-120'>doi</span>:
+           <a href='https://doi.org/10.1109/TIT.2006.881713'><a class='url' href='10.1109/TIT.2006.881713'><span class='ec-lmtt-12'>10.1109/TIT.2006.881713</span></a></a>.
+           </p></dd><dt class='thebibliography' id='X0-sjoberg1995nonlinear'>
+[Sjö+95]  </dt><dd class='thebibliography' id='bib-28'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@sjoberg1995nonlinear'></a>Jonas Sjöberg, Qinghua Zhang, Lennart Ljung, Albert Benveniste, Bernard
+           Delyon,  Pierre-Yves  Glorennec,  Håkan  Hjalmarsson,  and  Anatoli  Juditsky.
+           “Nonlinear black-box modeling in system identification: a unified overview”. In:
+           <span class='ec-lmri-12'>Automatica </span>31.12 (1995), pp. 1691–1724. <span class='ec-lmcsc-10x-x-120'>doi</span>: <a href='https://doi.org/10.1016/0005-1098(95)00120-8'><a class='url' href='10.1016/0005-1098(95)00120-8'><span class='ec-lmtt-12'>10.1016/0005-1098(95)00120-8</span></a></a>.
+           </p></dd><dt class='thebibliography' id='X0-srinivas2012information'>
+[Sri+12]   </dt><dd class='thebibliography' id='bib-29'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@srinivas2012information'></a>Niranjan Srinivas, Andreas Krause, Sham M. Kakade, and Matthias W. Seeger.
+           “Information-theoretic regret bounds for Gaussian process optimization in the
+           bandit  setting”.  In:  <span class='ec-lmri-12'>IEEE  Transactions  on  Information  Theory  </span>58.5  (2012),
+           pp. 3250–3265. <span class='ec-lmcsc-10x-x-120'>doi</span>: <a href='https://doi.org/10.1109/TIT.2011.2182033'><a class='url' href='10.1109/TIT.2011.2182033'><span class='ec-lmtt-12'>10.1109/TIT.2011.2182033</span></a></a>.
+           </p></dd><dt class='thebibliography' id='X0-umlauft:ecc2018'>
+[UBH18]   </dt><dd class='thebibliography' id='bib-30'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@umlauft:ecc2018'></a>Jonas  Umlauft,  Thomas  Beckers,  and  Sandra  Hirche.  “A  Scenario-based
+           Optimal  Control  Approach  for  Gaussian  Process  State  Space  Models”.
+           In:  <span class='ec-lmri-12'>2018  European  Control  Conference  (ECC)</span>.  2018,  pp.  1386–1392.  <span class='ec-lmcsc-10x-x-120'>doi</span>:
+           <a href='https://doi.org/10.23919/ECC.2018.8550458'><a class='url' href='10.23919/ECC.2018.8550458'><span class='ec-lmtt-12'>10.23919/ECC.2018.8550458</span></a></a>.
+           </p></dd><dt class='thebibliography' id='X0-wahba1990spline'>
+[Wah90]   </dt><dd class='thebibliography' id='bib-31'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@wahba1990spline'></a>Grace  Wahba.  <span class='ec-lmri-12'>Spline  models  for  observational  data</span>.  SIAM,  1990.  <span class='ec-lmcsc-10x-x-120'>doi</span>:
+           <a href='https://doi.org/10.1137/1.9781611970128'><a class='url' href='10.1137/1.9781611970128'><span class='ec-lmtt-12'>10.1137/1.9781611970128</span></a></a>.
+           </p></dd><dt class='thebibliography' id='X0-wang2005gaussian'>
+[WHB05]  </dt><dd class='thebibliography' id='bib-32'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@wang2005gaussian'></a>Jack  Wang,  Aaron  Hertzmann,  and  David  M.  Blei.  “Gaussian  process
+           dynamical  models”.  In:  <span class='ec-lmri-12'>Proceedings  of  the  18th  International  Conference
+           </span><span class='ec-lmri-12'>on   Neural   Information   Processing   System</span>.   2005,   pp.   1441–1448.   <span class='ec-lmcsc-10x-x-120'>doi</span>:
+           <a href='https://doi.org/10.5555/2976248.2976429'><a class='url' href='10.5555/2976248.2976429'><span class='ec-lmtt-12'>10.5555/2976248.2976429</span></a></a>.
+           </p></dd><dt class='thebibliography' id='X0-williams1996gaussian'>
+[WR96]    </dt><dd class='thebibliography' id='bib-33'>
+           <!-- l. 656 --><p class='noindent'><a id='cite.0@williams1996gaussian'></a>Christopher  K.  Williams  and  Carl  E.  Rasmussen.  “Gaussian  processes  for
+           regression”.  In:  <span class='ec-lmri-12'>Advances  in  neural  information  processing  systems</span>.  1996,
+           pp. 514–520.</p></dd></dl>
+    
+</body> 
+</html>
