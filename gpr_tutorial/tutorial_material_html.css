@@ -3,6 +3,7 @@ body {
 	margin: auto;
 	max-width: 1000px;
 }
+img{max-width: 100%}
  #responsive-image {  width: 100%;  height: auto; max-width: 700px } 
 /* start css.sty */
 .rm-lmr-8{font-size:66%;}
