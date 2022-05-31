@@ -75,6 +75,9 @@ window.addEventListener('orientationchange', resizeCanvas, false);
 slider1.addEventListener('mouseup', slider1_mouseup);
 slider2.addEventListener('mouseup', slider2_mouseup);
 slider3.addEventListener('mouseup', slider3_mouseup);
+slider1.addEventListener('touchend', slider1_mouseup);
+slider2.addEventListener('touchend', slider2_mouseup);
+slider3.addEventListener('touchend', slider3_mouseup);
 
 // call to draw the scene
 reset();
