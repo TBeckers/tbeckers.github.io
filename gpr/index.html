@@ -11,6 +11,7 @@
 	<link rel="icon" href="icon192.png">
 	<link rel="stylesheet" type="text/css" href="stylesheet.css">
 	<script language="javascript" type="text/javascript" src="scripts/math_and_opt.js"></script>
+	<script language="javascript" type="text/javascript" src="scripts/d3.min.js"></script>
 	<script language="javascript" type="text/javascript" src="scripts/gpr.js"></script>	
 	<link rel="manifest" href="manifest.json">
 </head>
@@ -46,6 +47,12 @@
   <option value="kernel_quad">Quadratic</option>
    </select></nobr>
    <input type="button" value="Autotune" id="optbutton" onclick="opt_hyp();">
+   <select id="sampleselection" onchange="sample_selection()">
+	<option value="0">No samples</option>
+	<option value="1">1 sample</option>
+	<option value="2">2 samples</option>
+	<option value="3">3 samples</option>
+	 </select>
   <nobr>Likelihood: <output id="lik_value">-</output></nobr>
    </div> 
 	<div class="slidecontainer" id="slidecontainer1">

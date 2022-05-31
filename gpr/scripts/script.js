@@ -11,10 +11,19 @@ var HEIGHT = canvas.height;
 
 const MAX_RECTS = 20;
 const R_POINTS = 30;
-const ELEMENTS = 150;
-const MAX_SLIDER1 = 2000;
-const MAX_SLIDER2 = 1000;
+const ELEMENTS = 150; //150
+const MAX_SLIDER1 = 4000;
+const MAX_SLIDER2 = 2000;
 const MAX_SLIDER3 = 1000;
+
+const N_ANIMATION_STEPS = 80;
+
+var fpsInterval, then;
+fpsInterval = 1000 / 20; //Frame rate
+
+var do_animation=0;
+
+const SAMPLE_COLORS = ['#3c731c','#541e8a','#dba225'];
 
 var img_trash = document.getElementById("img_trash");
 var slider1 = document.getElementById("slider1");
@@ -31,7 +40,7 @@ for (var i=0; i<ELEMENTS+1; i++){
 }
 
 
-var gp = new gpr();
+var gp = new gpr(ELEMENTS,N_ANIMATION_STEPS,x_test);
 
 // drag related variables
 var dragok = false;
@@ -62,6 +71,10 @@ canvas.addEventListener('touchend', myUpTouch, false);
 window.addEventListener('resize', resizeCanvas, false);
 window.addEventListener('scroll', resizeCanvas, false);
 window.addEventListener('orientationchange', resizeCanvas, false);
+
+slider1.addEventListener('mouseup', slider1_mouseup);
+slider2.addEventListener('mouseup', slider2_mouseup);
+slider3.addEventListener('mouseup', slider3_mouseup);
 
 // call to draw the scene
 reset();
@@ -96,7 +109,7 @@ function resizeCanvas() {
 	BB = canvas.getBoundingClientRect();
 	offsetX = BB.left;
 	offsetY = BB.top;
-	draw();
+	draw(1);
 }
 		
 function rect(x, y, r) {
@@ -160,7 +173,8 @@ function reset() {
 	slider2.value=hyp_sf*MAX_SLIDER2;
 	slider3.value=hyp_l*MAX_SLIDER3;
 	lik_value.value="-";
-	draw();
+	do_animation=0;
+	draw(0);
 }
 
 function button_clear() {
@@ -190,34 +204,52 @@ function opt_hyp() {
 	hyp_l=solution.best_x[2];
 	slider3.value=hyp_l*MAX_SLIDER3;
 	
-	draw();
+	draw(1);
 	}
 }
 
 // set kernel
 function kernel_selection() {
 	gp.kernel_fcn=kernelselection.value;
-	draw();
+	draw(1);
+}
+// set samples
+function sample_selection() {
+	gp.n_samples=parseInt(sampleselection.value);
+	gp.new_random_number();
+	draw(1);
 }
 
 //slider
 slider1.oninput = function() {
   hyp_sn = this.value/MAX_SLIDER1;
-  draw();
+  draw(0);
 }
+
+function slider1_mouseup() {
+	draw(1);
+  }
 
 slider2.oninput = function() {
   hyp_sf = this.value/MAX_SLIDER2;
-  draw();
+  draw(0);
 }
+
+function slider2_mouseup() {
+	draw(1);
+  }
 
 slider3.oninput = function() {
   hyp_l = this.value/MAX_SLIDER3;
-  draw();
+  draw(0);
 }
 
+function slider3_mouseup() {
+	draw(1);
+  }
+
 // redraw the scene
-function draw() {
+function draw(with_samples) {
     clear();
     ctx.fillStyle = "#FFFFFF";
     ctx.drawImage(img_trash, WIDTH-30, HEIGHT-30,30,30);
@@ -235,13 +267,60 @@ function draw() {
 	gp.Y=Y;
 	//draw gp
 	if (X.length>0){
-	var gp_out= gp.pred(x_test,hyp_sn,hyp_sf,hyp_l);
+
+	if (with_samples==1 && gp.n_samples>0){
+		gp_out= gp.pred(x_test,hyp_sn,hyp_sf,hyp_l,1);
+		for (let j = 0; j < gp.n_samples; j += 1) {
+			draw_mean(x_test,gp_out.sample[j*N_ANIMATION_STEPS],ELEMENTS,SAMPLE_COLORS[j]);
+			do_animation=1;
+			then = 0;
+			animation_samples();		
+		}
+	} else {
+		do_animation=0;
+		gp_out= gp.pred(x_test,hyp_sn,hyp_sf,hyp_l,0);
+	}
 	draw_mean(x_test,gp_out.mean,ELEMENTS,'#FF0000');
-	draw_var(x_test,gp_out.mean,gp_out.sigma,1,ELEMENTS,'#c8c8c8');
-	draw_var(x_test,gp_out.mean,gp_out.sigma,-1,ELEMENTS,'#c8c8c8');
-	
+	draw_var(x_test,gp_out.mean,gp_out.sigma,2.5,ELEMENTS,'#c8c8c8');
+	draw_var(x_test,gp_out.mean,gp_out.sigma,-2.5,ELEMENTS,'#c8c8c8');
+
 	print_lik(-gp_out.ll)
 	} 
+}
+
+var ani_counter=0;
+function animation_samples(){
+if (do_animation==1){
+	window.requestAnimationFrame(animation_samples);
+	var now = Date.now();
+    var elapsed = now - then;
+
+	if (elapsed > fpsInterval) {
+
+	then = now - (elapsed % fpsInterval);
+
+	clear();
+    ctx.fillStyle = "#FFFFFF";
+    ctx.drawImage(img_trash, WIDTH-30, HEIGHT-30,30,30);
+
+	for (var i = 0; i < rects.length; i++) {
+        var r = rects[i];
+        rect(r.x, r.y, r.radius);
+	}
+	
+	for (let j = 0; j < gp.n_samples; j += 1) {
+		draw_mean(x_test,gp_out.sample[j*N_ANIMATION_STEPS+ani_counter],ELEMENTS,SAMPLE_COLORS[j]);	
+	}
+	draw_mean(x_test,gp_out.mean,ELEMENTS,'#FF0000');
+	draw_var(x_test,gp_out.mean,gp_out.sigma,2.5,ELEMENTS,'#c8c8c8');
+	draw_var(x_test,gp_out.mean,gp_out.sigma,-2.5,ELEMENTS,'#c8c8c8');
+
+	ani_counter=ani_counter+1
+	if (ani_counter==N_ANIMATION_STEPS){
+		ani_counter=0;
+	}
+}
+}
 }
 
 function print_lik(gp_lik) {
@@ -289,7 +368,7 @@ function myDown(e) {
 		isDragging: false
 			});
 	  
-	  draw();
+	  draw(0);
 	}
 }
 
@@ -311,13 +390,13 @@ function myUp(e) {
 			if (mx*WIDTH>WIDTH-R_POINTS && my*HEIGHT+HEIGHT/2>HEIGHT-R_POINTS){
 			rects.splice(i,1);
 			i=i-1;
-			draw();
 			}
 			else{
 				rects[i].isDragging = false;
 			}
 		}
     }
+	draw(1);
 }
 
 
@@ -339,7 +418,7 @@ function myMove(e) {
         }
 
         // redraw the scene with the new rect positions
-        draw();
+        draw(0);
 
 
     }
@@ -388,7 +467,7 @@ function myDownTouch(e) {
 		isDragging: false
 			});
 	  
-	  draw();
+	  draw(0);
 	}
 }
 
@@ -409,13 +488,13 @@ function myUpTouch(e) {
 			if (mx*WIDTH>WIDTH-R_POINTS && my*HEIGHT+HEIGHT/2>HEIGHT-R_POINTS){
 			rects.splice(i,1);
 			i=i-1;
-			draw();
 			}
 			else{
 				rects[i].isDragging = false;
 			}
 		}
     }
+	draw(1);
 }
 
 function myMoveTouch(e) {
@@ -434,7 +513,7 @@ function myMoveTouch(e) {
             }
         }
 
-        draw();
+        draw(0);
 
     }
 }
