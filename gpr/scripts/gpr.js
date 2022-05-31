@@ -7,11 +7,11 @@ class gpr {
 	this.X = [];
 	this.Y = [];
 	this.ELEMENTS=ELEMENTS;
-	this.GaussRandom = this.getGaussSphere_wrapper(1,3);
 	this.x_test=x_test;
 	this.min_noise = 1/1000000;
-	this.n_samples=0;
+	this.n_samples=1;
 	this.N_ANIMATION_STEPS = N_ANIMATION_STEPS;
+	this.GaussRandom = this.getGaussSphere_wrapper(this.n_samples,this.N_ANIMATION_STEPS);
 
 	this.getGaussSphere(10);
   }
