@@ -11,7 +11,7 @@ var HEIGHT = canvas.height;
 
 const MAX_RECTS = 20;
 const R_POINTS = 30;
-const ELEMENTS = 150; //150
+const ELEMENTS = 150; 
 const MAX_SLIDER1 = 4000;
 const MAX_SLIDER2 = 2000;
 const MAX_SLIDER3 = 1000;
@@ -148,17 +148,18 @@ function draw_mean(x, y, length,color) {
 }
 
 function draw_var(x, y, z, c,length,color) {
-	ctx.beginPath();
-	ctx.strokeStyle = color;
-	for (var i=0; i<length; i++){
-		x0=x[i]*WIDTH;
-		y0=(y[i]+c*z[i])*HEIGHT+HEIGHT/2;
-		x1=x[i+1]*WIDTH;
-		y1=(y[i+1]+c*z[i+1])*HEIGHT+HEIGHT/2;
-		ctx.moveTo(x0, y0);
-		ctx.lineTo(x1, y1);
+	let region = new Path2D();
+	ctx.fillStyle = color;
+	region.moveTo(x[0]*WIDTH, (y[0]+c*z[0])*HEIGHT+HEIGHT/2);
+	for (var i=1; i<=length; i++){
+		region.lineTo(x[i]*WIDTH, (y[i]+c*z[i])*HEIGHT+HEIGHT/2);
 	}
-	ctx.stroke();
+	ctx.lineTo(x[length]*WIDTH, (y[length]-c*z[length])*HEIGHT+HEIGHT/2);
+	for (var i=length; i>=0; i--){
+		region.lineTo(x[i]*WIDTH, (y[i]-c*z[i])*HEIGHT+HEIGHT/2);
+	}
+	region.closePath();
+	ctx.fill(region);
 }
 
 // clear the canvas
@@ -261,8 +262,7 @@ function draw(with_samples) {
 	var Y = [];
 	
     for (var i = 0; i < rects.length; i++) {
-        var r = rects[i];
-        rect(r.x, r.y, r.radius);
+		var r = rects[i];
 		X[i]=r.x;
 		Y[i]=r.y;
 	}
@@ -283,10 +283,12 @@ function draw(with_samples) {
 		do_animation=0;
 		gp_out= gp.pred(x_test,hyp_sn,hyp_sf,hyp_l,0);
 	}
+	draw_var(x_test,gp_out.mean,gp_out.sigma,2.5,ELEMENTS,'#e2e2e2');
 	draw_mean(x_test,gp_out.mean,ELEMENTS,'#FF0000');
-	draw_var(x_test,gp_out.mean,gp_out.sigma,2.5,ELEMENTS,'#c8c8c8');
-	draw_var(x_test,gp_out.mean,gp_out.sigma,-2.5,ELEMENTS,'#c8c8c8');
-
+    for (var i = 0; i < rects.length; i++) {
+        var r = rects[i];
+        rect(r.x, r.y, r.radius);
+	}
 	print_lik(-gp_out.ll)
 	} 
 }
@@ -306,17 +308,18 @@ if (do_animation==1){
     ctx.fillStyle = "#FFFFFF";
     ctx.drawImage(img_trash, WIDTH-30, HEIGHT-30,30,30);
 
+	
+	draw_var(x_test,gp_out.mean,gp_out.sigma,2.5,ELEMENTS,'#e2e2e2');
+	draw_mean(x_test,gp_out.mean,ELEMENTS,'#FF0000');
+
+	for (let j = 0; j < gp.n_samples; j += 1) {
+		draw_mean(x_test,gp_out.sample[j*N_ANIMATION_STEPS+ani_counter],ELEMENTS,SAMPLE_COLORS[j]);	
+	}
+
 	for (var i = 0; i < rects.length; i++) {
         var r = rects[i];
         rect(r.x, r.y, r.radius);
 	}
-	
-	for (let j = 0; j < gp.n_samples; j += 1) {
-		draw_mean(x_test,gp_out.sample[j*N_ANIMATION_STEPS+ani_counter],ELEMENTS,SAMPLE_COLORS[j]);	
-	}
-	draw_mean(x_test,gp_out.mean,ELEMENTS,'#FF0000');
-	draw_var(x_test,gp_out.mean,gp_out.sigma,2.5,ELEMENTS,'#c8c8c8');
-	draw_var(x_test,gp_out.mean,gp_out.sigma,-2.5,ELEMENTS,'#c8c8c8');
 
 	ani_counter=ani_counter+1
 	if (ani_counter==N_ANIMATION_STEPS){
