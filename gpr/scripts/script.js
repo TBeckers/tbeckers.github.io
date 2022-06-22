@@ -254,10 +254,6 @@ function slider3_mouseup() {
 
 // redraw the scene
 function draw(with_samples) {
-    clear();
-    ctx.fillStyle = "#FFFFFF";
-    ctx.drawImage(img_trash, WIDTH-30, HEIGHT-30,30,30);
-
 	var X = [];
 	var Y = [];
 	
@@ -269,6 +265,7 @@ function draw(with_samples) {
 	gp.X=X;
 	gp.Y=Y;
 	//draw gp
+	clear();
 	if (X.length>0){
 
 	if (with_samples==1 && gp.n_samples>0){
@@ -285,6 +282,8 @@ function draw(with_samples) {
 	}
 	draw_var(x_test,gp_out.mean,gp_out.sigma,2.5,ELEMENTS,'#e2e2e2');
 	draw_mean(x_test,gp_out.mean,ELEMENTS,'#FF0000');
+	ctx.fillStyle = "#FFFFFF";
+    ctx.drawImage(img_trash, WIDTH-30, HEIGHT-30,30,30);
     for (var i = 0; i < rects.length; i++) {
         var r = rects[i];
         rect(r.x, r.y, r.radius);
@@ -305,10 +304,7 @@ if (do_animation==1){
 	then = now - (elapsed % fpsInterval);
 
 	clear();
-    ctx.fillStyle = "#FFFFFF";
-    ctx.drawImage(img_trash, WIDTH-30, HEIGHT-30,30,30);
 
-	
 	draw_var(x_test,gp_out.mean,gp_out.sigma,2.5,ELEMENTS,'#e2e2e2');
 	draw_mean(x_test,gp_out.mean,ELEMENTS,'#FF0000');
 
@@ -316,10 +312,14 @@ if (do_animation==1){
 		draw_mean(x_test,gp_out.sample[j*N_ANIMATION_STEPS+ani_counter],ELEMENTS,SAMPLE_COLORS[j]);	
 	}
 
+	ctx.fillStyle = "#FFFFFF";
+    ctx.drawImage(img_trash, WIDTH-30, HEIGHT-30,30,30);
+
 	for (var i = 0; i < rects.length; i++) {
         var r = rects[i];
         rect(r.x, r.y, r.radius);
 	}
+
 
 	ani_counter=ani_counter+1
 	if (ani_counter==N_ANIMATION_STEPS){
