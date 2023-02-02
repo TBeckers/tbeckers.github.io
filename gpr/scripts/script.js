@@ -90,6 +90,7 @@ function resizeCanvas() {
 	} else{
 		actual_width=screen.width;
 	}
+	actual_width=screen.width;
 	var divHeight1 = controlcontainer.clientHeight;
 	var divHeight2 = slidecontainer1.clientHeight;
 	
@@ -118,6 +119,7 @@ function resizeCanvas() {
 function rect(x, y, r) {
 	x=x*WIDTH;
 	y=y*HEIGHT+HEIGHT/2;
+	ctx.lineWidth = 2;
 	ctx.beginPath();
     ctx.moveTo(x-r/2, y);
 	ctx.lineTo(x+r/2, y);
@@ -134,6 +136,7 @@ div_text.onclick = function() {
 } 
 
 function draw_mean(x, y, length,color) {
+	ctx.lineWidth = 2;
 	ctx.beginPath();
 	ctx.strokeStyle = color;
 	for (var i=0; i<length; i++){
