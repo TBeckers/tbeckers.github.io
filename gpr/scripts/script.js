@@ -90,7 +90,7 @@ function resizeCanvas() {
 	} else{
 		actual_width=screen.width;
 	}
-	actual_width=screen.width;
+
 	var divHeight1 = controlcontainer.clientHeight;
 	var divHeight2 = slidecontainer1.clientHeight;
 	

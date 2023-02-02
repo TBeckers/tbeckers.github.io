@@ -11,7 +11,7 @@ const filesToCache = [
   'icon512.png'
 ];
 
-const staticCacheName = 'tbeckers_gpr_catch_v1.91';
+const staticCacheName = 'tbeckers_gpr_catch_v1.9';
 
 self.addEventListener('install', event => {
   //console.log('Attempting to install service worker and cache static assets');
